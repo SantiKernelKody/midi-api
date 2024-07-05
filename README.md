@@ -40,4 +40,4 @@ fastAPI project for the dashboard.
     └── env.py
 
 
-security->session->base_class->models/user->schemas/user->crud/user->core/security.py->endpoints/auth->main.py
+security->session->base_class->models/user->schemas/->user->crud/user->core/security.py->endpoints/auth->main.py
