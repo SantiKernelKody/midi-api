@@ -15,7 +15,7 @@ class UserRoleInDBBase(UserRoleBase):
     id: int
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class UserRole(UserRoleInDBBase):
     pass
