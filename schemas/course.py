@@ -19,7 +19,7 @@ class CourseInDBBase(CourseBase):
     reviewer_id: int
 
     class Config:
-        orm_mode = True
+         from_attributes = True
 
 class Course(CourseInDBBase):
     pass
