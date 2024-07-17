@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 29b43c463a2e
+Revision ID: 1b877df7737b
 Revises: 
-Create Date: 2024-07-17 15:46:19.197051
+Create Date: 2024-07-17 16:16:06.051936
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '29b43c463a2e'
+revision: str = '1b877df7737b'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,6 +27,18 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_avatar_id'), 'avatar', ['id'], unique=False)
+    op.create_table('city',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_city_id'), 'city', ['id'], unique=False)
+    op.create_table('country',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_country_id'), 'country', ['id'], unique=False)
     op.create_table('course',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('school_id', sa.Integer(), nullable=True),
@@ -72,6 +84,12 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_player_id'), 'player', ['id'], unique=False)
+    op.create_table('politic_division',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_politic_division_id'), 'politic_division', ['id'], unique=False)
     op.create_table('skills',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=32), nullable=True),
@@ -114,6 +132,15 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_chapter_id'), 'chapter', ['id'], unique=False)
+    op.create_table('course_player',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('course_id', sa.Integer(), nullable=True),
+    sa.Column('player_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['course_id'], ['course.id'], ),
+    sa.ForeignKeyConstraint(['player_id'], ['player.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_course_player_id'), 'course_player', ['id'], unique=False)
     op.create_table('dashboard_user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('role_id', sa.Integer(), nullable=True),
@@ -127,6 +154,15 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_dashboard_user_email'), 'dashboard_user', ['email'], unique=True)
     op.create_index(op.f('ix_dashboard_user_id'), 'dashboard_user', ['id'], unique=False)
+    op.create_table('player_special_need',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('player_id', sa.Integer(), nullable=True),
+    sa.Column('special_need_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['player_id'], ['player.id'], ),
+    sa.ForeignKeyConstraint(['special_need_id'], ['special_need.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_player_special_need_id'), 'player_special_need', ['id'], unique=False)
     op.create_table('room',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('id_avatar', sa.Integer(), nullable=True),
@@ -139,6 +175,24 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_room_id'), 'room', ['id'], unique=False)
+    op.create_table('caretaker_player',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('representative_id', sa.Integer(), nullable=True),
+    sa.Column('player_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['player_id'], ['player.id'], ),
+    sa.ForeignKeyConstraint(['representative_id'], ['dashboard_user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_caretaker_player_id'), 'caretaker_player', ['id'], unique=False)
+    op.create_table('education_reviewer',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('education_id', sa.Integer(), nullable=True),
+    sa.Column('reviewer_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['education_id'], ['educational_entity.id'], ),
+    sa.ForeignKeyConstraint(['reviewer_id'], ['dashboard_user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_education_reviewer_id'), 'education_reviewer', ['id'], unique=False)
     op.create_table('level',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('chapter_id', sa.Integer(), nullable=True),
@@ -163,6 +217,15 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_story_id'), 'story', ['id'], unique=False)
+    op.create_table('level_skills',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('level_id', sa.Integer(), nullable=True),
+    sa.Column('skill_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['level_id'], ['level.id'], ),
+    sa.ForeignKeyConstraint(['skill_id'], ['skills.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_level_skills_id'), 'level_skills', ['id'], unique=False)
     op.create_table('player_level',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('level_id', sa.Integer(), nullable=True),
@@ -202,15 +265,25 @@ def downgrade() -> None:
     op.drop_table('player_story')
     op.drop_index(op.f('ix_player_level_id'), table_name='player_level')
     op.drop_table('player_level')
+    op.drop_index(op.f('ix_level_skills_id'), table_name='level_skills')
+    op.drop_table('level_skills')
     op.drop_index(op.f('ix_story_id'), table_name='story')
     op.drop_table('story')
     op.drop_index(op.f('ix_level_id'), table_name='level')
     op.drop_table('level')
+    op.drop_index(op.f('ix_education_reviewer_id'), table_name='education_reviewer')
+    op.drop_table('education_reviewer')
+    op.drop_index(op.f('ix_caretaker_player_id'), table_name='caretaker_player')
+    op.drop_table('caretaker_player')
     op.drop_index(op.f('ix_room_id'), table_name='room')
     op.drop_table('room')
+    op.drop_index(op.f('ix_player_special_need_id'), table_name='player_special_need')
+    op.drop_table('player_special_need')
     op.drop_index(op.f('ix_dashboard_user_id'), table_name='dashboard_user')
     op.drop_index(op.f('ix_dashboard_user_email'), table_name='dashboard_user')
     op.drop_table('dashboard_user')
+    op.drop_index(op.f('ix_course_player_id'), table_name='course_player')
+    op.drop_table('course_player')
     op.drop_index(op.f('ix_chapter_id'), table_name='chapter')
     op.drop_table('chapter')
     op.drop_index(op.f('ix_user_role_name'), table_name='user_role')
@@ -223,6 +296,8 @@ def downgrade() -> None:
     op.drop_table('special_need')
     op.drop_index(op.f('ix_skills_id'), table_name='skills')
     op.drop_table('skills')
+    op.drop_index(op.f('ix_politic_division_id'), table_name='politic_division')
+    op.drop_table('politic_division')
     op.drop_index(op.f('ix_player_id'), table_name='player')
     op.drop_table('player')
     op.drop_index(op.f('ix_game_id'), table_name='game')
@@ -232,6 +307,10 @@ def downgrade() -> None:
     op.drop_table('educational_entity')
     op.drop_index(op.f('ix_course_id'), table_name='course')
     op.drop_table('course')
+    op.drop_index(op.f('ix_country_id'), table_name='country')
+    op.drop_table('country')
+    op.drop_index(op.f('ix_city_id'), table_name='city')
+    op.drop_table('city')
     op.drop_index(op.f('ix_avatar_id'), table_name='avatar')
     op.drop_table('avatar')
     # ### end Alembic commands ###
