@@ -18,7 +18,7 @@ class ChapterInDBBase(ChapterBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+         from_attributes = True
 
 class Chapter(ChapterInDBBase):
     pass
