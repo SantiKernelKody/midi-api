@@ -31,3 +31,7 @@ class DashboardUser(DashboardUserInDBBase):
 
 class DashboardUserInDB(DashboardUserInDBBase):
     hashed_password: str
+    
+class Token(BaseModel):
+    access_token: str
+    token_type: str

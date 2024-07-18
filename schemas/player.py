@@ -12,8 +12,11 @@ class PlayerBase(BaseModel):
     user_name: str = None
     password: str = None
 
-class PlayerCreate(PlayerBase):
-    pass
+class PlayerCreate(BaseModel):
+    full_name: str
+    school_id: int
+    course_id: int
+    age: int
 
 class PlayerUpdate(PlayerBase):
     pass
