@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from crud import game_data as crud_game_data
 from schemas.game_data import GameDataCreate
-from models import Stage, EducationalEntity, Player
 from db.session import get_db
+from models.educational_entity import EducationalEntity
+from models.player import Player
+
 
 router = APIRouter()
 
@@ -26,25 +28,23 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
     if game_data.tipo == "jugador":
         player_data = game_data.nombre_jugador.split("-", 3)
         if len(player_data) >= 3:
-            school_code, stage_code, player_name = player_data
+            school_code, stage_code, player_full_name  = player_data
         else:
             school_code = "ES000"
             stage_code = "R0"
-            player_name = game_data.nombre_jugador
+            player_full_name  = game_data.nombre_jugador
         
         # Fetch school and stage
-        stage = db.query(Stage).filter(Stage.code == stage_code).first()
+        stage = crud_game_data.create_or_get_stage(db, stage_code)
         school = db.query(EducationalEntity).filter(EducationalEntity.code == school_code).first()
 
-        if not stage or not school:
-            stage = db.query(Stage).filter(Stage.code == "R0").first()
+        if not school:
             school = db.query(EducationalEntity).filter(EducationalEntity.code == "ES000").first()
         
         # Room processing
-        room = crud_game_data.create_or_get_room(db, stage_code, "Descripcion", stage.id, school.id, game.id)
-        
-        # Player processing
-        player = crud_game_data.create_or_get_player(db, player_name, game_data.avatar_id, school.id)
+        avatar = crud_game_data.create_or_get_avatar(db, game_data.avatar)
+        player = crud_game_data.create_or_get_player(db, player_full_name, school.id)
+        room = crud_game_data.create_room(db, stage.id, avatar.id, player.id)
         
         return {"detail": "Player data saved successfully"}
     
@@ -61,12 +61,12 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
             db=db,
             player_id=player.id,
             level_id=level.id,
-            score=game_data.score,
+            score=game_data.correctas, # Assuming score is correctas
             incorrect=game_data.incorrectas,
             correct=game_data.correctas,
-            attempts=game_data.attempts,
+            attempts=1, # Assuming attempts is 1
             total_time=game_data.tiempo_juego,
-            times_out_focus=game_data.times_out_focus
+            times_out_focus=game_data.duracion # Assuming times_out_focus is duracion
         )
         
         return {"detail": "Game data saved successfully"}
@@ -85,9 +85,9 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
             player_id=player.id,
             story_id=story.id,
             time_watched=game_data.tiempo_juego,
-            total_time_out=game_data.total_time_out,
-            pauses=game_data.pauses,
-            times_out_focus=game_data.times_out_focus
+            total_time_out=game_data.duracion, # Assuming total_time_out is duracion
+            pauses=0, # Assuming pauses is 0
+            times_out_focus=game_data.duracion # Assuming times_out_focus is duracion
         )
         
         return {"detail": "Story data saved successfully"}

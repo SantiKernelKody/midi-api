@@ -25,7 +25,7 @@ class PlayerLevelInDBBase(PlayerLevelBase):
     created_at: datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class PlayerLevel(PlayerLevelInDBBase):
     pass

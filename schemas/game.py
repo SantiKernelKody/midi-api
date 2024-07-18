@@ -17,7 +17,7 @@ class GameInDBBase(GameBase):
     created_at: datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class Game(GameInDBBase):
     pass

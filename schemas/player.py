@@ -1,39 +1,32 @@
 from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
 
 class PlayerBase(BaseModel):
-    name: str
-    last_name: str
-    edad: int
-    ethnicity: str
-    special_need_description: Optional[str] = None
-    special_need: bool
-    user_name: str
-    password: str
-
-class PlayerCreate(PlayerBase):
     school_id: int
-    avatar_id: Optional[int] = None
-    special_need_id: Optional[int] = None
+    special_need_id: int
+    full_name: str
+    edad: int = None
+    ethnicity: str = None
+    special_need_description: str = None
+    special_need: bool = None
+    user_name: str = None
+    password: str = None
+
+class PlayerCreate(BaseModel):
+    full_name: str
+    school_id: int
+    course_id: int
+    age: int
 
 class PlayerUpdate(PlayerBase):
-    school_id: Optional[int] = None
-    avatar_id: Optional[int] = None
-    special_need_id: Optional[int] = None
+    pass
 
 class PlayerInDBBase(PlayerBase):
     id: int
-    school_id: int
-    avatar_id: Optional[int] = None
-    special_need_id: Optional[int] = None
-    created_at: datetime
+    created_at: datetime.datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class Player(PlayerInDBBase):
     pass
-
-class PlayerInDB(PlayerInDBBase):
-    hashed_password: str

@@ -1,35 +1,25 @@
 from sqlalchemy.orm import Session
+from schemas.player import PlayerCreate
 from models.player import Player
-from models.player_level import PlayerLevel
-from schemas.player_level import PlayerLevelCreate
-from models.player_story import PlayerStory
-from schemas.player_story import PlayerStoryCreate
-from models.room import Room
-from schemas.room import RoomCreate
+from models.course_player import CoursePlayer
 
-def find_player_by_name(db: Session, name: str) -> Player | None:
-    player = db.query(Player).filter(Player.name == name).first()
-    if not player:
-        return None
-    return player
-
-def create_player_level(db: Session, player_level: PlayerLevelCreate):
-    db_player_level = PlayerLevel(**player_level.dict())
-    db.add(db_player_level)
+def create_player(db: Session, player: PlayerCreate):
+    db_player = Player(
+        full_name=player.full_name,
+        school_id=player.school_id,
+        age=player.age
+    )
+    db.add(db_player)
     db.commit()
-    db.refresh(db_player_level)
-    return db_player_level
+    db.refresh(db_player)
 
-def create_player_story(db: Session, player_story: PlayerStoryCreate):
-    db_player_story = PlayerStory(**player_story.dict())
-    db.add(db_player_story)
+    # Crear asociación en la tabla course_player
+    db_course_player = CoursePlayer(
+        course_id=player.course_id,
+        player_id=db_player.id
+    )
+    db.add(db_course_player)
     db.commit()
-    db.refresh(db_player_story)
-    return db_player_story
+    db.refresh(db_course_player)
 
-def create_room(db: Session, room: RoomCreate):
-    db_room = Room(**room.dict())
-    db.add(db_room)
-    db.commit()
-    db.refresh(db_room)
-    return db_room
+    return db_player

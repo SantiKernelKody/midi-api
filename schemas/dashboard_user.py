@@ -6,14 +6,17 @@ class DashboardUserBase(BaseModel):
     name: str
     last_name: str
     email: EmailStr
+    role_id: int
 
 class DashboardUserCreate(DashboardUserBase):
-    password: str
+    email: EmailStr
+    name: str
+    last_name: str
     role_id: int
+    
 
 class DashboardUserUpdate(DashboardUserBase):
     password: Optional[str] = None
-    role_id: Optional[int] = None
 
 class DashboardUserInDBBase(DashboardUserBase):
     id: int
@@ -21,10 +24,14 @@ class DashboardUserInDBBase(DashboardUserBase):
     created_at: datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class DashboardUser(DashboardUserInDBBase):
     pass
 
 class DashboardUserInDB(DashboardUserInDBBase):
     hashed_password: str
+    
+class Token(BaseModel):
+    access_token: str
+    token_type: str

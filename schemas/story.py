@@ -19,7 +19,7 @@ class StoryInDBBase(StoryBase):
     created_at: datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class Story(StoryInDBBase):
     pass

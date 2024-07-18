@@ -16,7 +16,7 @@ class EducationalEntityInDBBase(EducationalEntityBase):
     created_at: datetime
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class EducationalEntity(EducationalEntityInDBBase):
     pass

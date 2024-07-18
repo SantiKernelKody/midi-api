@@ -14,7 +14,7 @@ class SpecialNeedInDBBase(SpecialNeedBase):
     id: int
 
     class Config:
-         from_attributes = True
+        orm_mode = True
 
 class SpecialNeed(SpecialNeedInDBBase):
     pass
