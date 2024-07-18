@@ -6,14 +6,17 @@ class DashboardUserBase(BaseModel):
     name: str
     last_name: str
     email: EmailStr
+    role_id: int
 
 class DashboardUserCreate(DashboardUserBase):
-    password: str
+    email: EmailStr
+    name: str
+    last_name: str
     role_id: int
+    
 
 class DashboardUserUpdate(DashboardUserBase):
     password: Optional[str] = None
-    role_id: Optional[int] = None
 
 class DashboardUserInDBBase(DashboardUserBase):
     id: int

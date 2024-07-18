@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecretkey")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    EMAILS_FROM_EMAIL: str = "your-email@example.com"
+    SMTP_HOST: str = "smtp.example.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "your-email@example.com"
+    SMTP_PASSWORD: str = "your-email-password"
 
     class Config:
         case_sensitive = True
