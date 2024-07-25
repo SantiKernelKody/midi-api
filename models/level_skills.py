@@ -5,7 +5,7 @@ from db.base_class import Base
 class LevelSkills(Base):
     __tablename__ = "level_skills"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     level_id = Column(Integer, ForeignKey("level.id"))
     skill_id = Column(Integer, ForeignKey("skills.id"))
 

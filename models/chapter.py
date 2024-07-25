@@ -4,7 +4,7 @@ from db.base_class import Base
 
 class Chapter(Base):
     __tablename__ = "chapter"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     game_id = Column(Integer, ForeignKey("game.id"))
     name = Column(String(64))
     description = Column(String(255))

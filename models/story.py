@@ -4,7 +4,7 @@ from db.base_class import Base
 
 class Story(Base):
     __tablename__ = "story"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     chapter_id = Column(Integer, ForeignKey("chapter.id"))
     time = Column(Integer)
     name = Column(String(64))

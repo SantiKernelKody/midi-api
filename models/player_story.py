@@ -3,7 +3,7 @@ from db.base_class import Base
 from datetime import datetime
 class PlayerStory(Base):
     __tablename__ = "player_story"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     story_id = Column(Integer, ForeignKey("story.id"))
     player_id = Column(Integer, ForeignKey("player.id"))
     time_watched = Column(Integer)

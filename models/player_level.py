@@ -4,7 +4,7 @@ from datetime import datetime
 
 class PlayerLevel(Base):
     __tablename__ = "player_level"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     level_id = Column(Integer, ForeignKey("level.id"))
     player_id = Column(Integer, ForeignKey("player.id"))
     score = Column(Float(10, 2))

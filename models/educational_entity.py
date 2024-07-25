@@ -4,7 +4,7 @@ from db.base_class import Base
 
 class EducationalEntity(Base):
     __tablename__ = "educational_entity"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(128))
     code = Column(String(16), unique=True, index=True)
     description = Column(String(255))

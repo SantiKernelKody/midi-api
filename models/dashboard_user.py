@@ -5,7 +5,7 @@ from db.base_class import Base
 
 class DashboardUser(Base):
     __tablename__ = "dashboard_user"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     role_id = Column(Integer, ForeignKey("user_role.id"))
     name = Column(String(128))
     last_name = Column(String(128))
