@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 
 from schemas.dashboard_user import DashboardUserCreate, Token
 from schemas.token import TokenData
+from schemas.auth import LoginRequest
 from models.dashboard_user import DashboardUser as DashboardUserModel
 from models.user_role import UserRole as UserRoleModel
 from core import security
@@ -18,9 +19,9 @@ router = APIRouter()
 
 # Ruta para login
 @router.post("/login", response_model=Token)
-def login_for_access_token(email: str, rawpassword: str, role_name: str, db: Session = Depends(get_db)):
-    user = get_user_by_email_and_role(db, email=email, role_name=role_name)
-    if not user or not security.verify_password(rawpassword, user.password):
+def login_for_access_token(login_request: LoginRequest, db: Session = Depends(get_db)):
+    user = get_user_by_email_and_role(db, email=login_request.email, role_name=login_request.role_name)
+    if not user or not security.verify_password(login_request.rawpassword, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email, password, or role",
