@@ -7,7 +7,7 @@ class Player(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     school_id = Column(Integer, ForeignKey("educational_entity.id"))
-    special_need_id = Column(Integer, ForeignKey("special_need.id"))
+    special_need_id = Column(Integer, nullable=True)
     full_name = Column(String(128), nullable=False)
     edad = Column(Integer, nullable=True)
     ethnicity = Column(String(32), nullable=True)
@@ -18,4 +18,4 @@ class Player(Base):
     created_at = Column(TIMESTAMP, nullable=True)
 
     school = relationship("EducationalEntity")
-    special_need = relationship("SpecialNeed")
+    #special_need = relationship("SpecialNeed")

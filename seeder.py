@@ -10,6 +10,10 @@ from models.course_player import CoursePlayer
 from models.education_reviewer import EducationReviewer
 from models.player_level import PlayerLevel
 from models.player_story import PlayerStory
+from models.game import Game
+from models.chapter import Chapter
+from models.level import Level
+from models.story import Story
 from core.security import get_password_hash
 from datetime import datetime
 
@@ -146,22 +150,22 @@ def seed():
         db.add(course_player4)
     db.commit()
 
+    # Crear relaciones entre padres y jugadores
     parent1 = db.query(DashboardUser).filter_by(email="parent1@example.com").first()
     parent2 = db.query(DashboardUser).filter_by(email="parent2@example.com").first()
 
-    # Asignar padres a jugadores
     for i in range(1, 3):
         player = db.query(Player).filter_by(user_name=f"player{i}_s1").first()
         caretaker_player = CaretakerPlayer(representative_id=parent1.id, player_id=player.id)
         db.add(caretaker_player)
-    for i in range(3, 6):
+    for i in range(3, 5):
         player = db.query(Player).filter_by(user_name=f"player{i}_s2").first()
         caretaker_player = CaretakerPlayer(representative_id=parent2.id, player_id=player.id)
         db.add(caretaker_player)
     db.commit()
 
-    # Crear juegos, capítulos y niveles
-    game = {"name": "Math Game", "description": "A fun math game", "logo_game": "math_logo.png", "created_at": datetime.utcnow()}
+    # Crear datos en player_level y player_story
+    game = {"name": "Math Game", "description": "Math learning game", "logo_game": "logo.png", "created_at": datetime.utcnow()}
     db_game = Game(**game)
     db.add(db_game)
     db.commit()
@@ -171,12 +175,12 @@ def seed():
     db.add(db_chapter)
     db.commit()
 
-    level = {"chapter_id": db_chapter.id, "name": "Level 1", "description": "Basic Math", "evaluation_criteria": "Score", "evaluation_method": "Points", "max_score": 100, "created_at": datetime.utcnow()}
+    level = {"chapter_id": db_chapter.id, "name": "Level 1", "description": "Basic Math", "evaluation_criteria": "Accuracy", "evaluation_method": "Quiz", "max_score": 100, "created_at": datetime.utcnow()}
     db_level = Level(**level)
     db.add(db_level)
     db.commit()
 
-    story = {"chapter_id": db_chapter.id, "time": 10, "name": "Story 1", "description": "Math story", "created_at": datetime.utcnow()}
+    story = {"chapter_id": db_chapter.id, "time": 5, "name": "Math Story", "description": "Math story", "created_at": datetime.utcnow()}
     db_story = Story(**story)
     db.add(db_story)
     db.commit()
