@@ -9,6 +9,7 @@ class PlayerLevelBase(BaseModel):
     attempts: int
     total_time: int
     times_out_focus: int
+    state: Optional[str] = None
 
 class PlayerLevelCreate(PlayerLevelBase):
     level_id: int

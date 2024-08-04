@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from db.base_class import Base
 from datetime import datetime
 class PlayerStory(Base):
@@ -10,4 +10,5 @@ class PlayerStory(Base):
     total_time_out = Column(Integer)
     pauses = Column(Integer)
     times_out_focus = Column(Integer)
+    state = Column(String(64))
     created_at = Column(DateTime, default=datetime.utcnow)

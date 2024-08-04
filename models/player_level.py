@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from db.base_class import Base
 from datetime import datetime
 
@@ -13,4 +13,5 @@ class PlayerLevel(Base):
     attempts = Column(Integer)
     total_time = Column(Integer)
     times_out_focus = Column(Integer)
+    state = Column(String(64))
     created_at = Column(DateTime, default=datetime.utcnow)
