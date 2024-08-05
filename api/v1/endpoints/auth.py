@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from jose import JWTError
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError
 from datetime import timedelta, datetime
 
 from schemas.dashboard_user import DashboardUserCreate, Token
@@ -13,7 +13,7 @@ from core.config import settings
 from db.session import get_db
 from utils.email import send_email
 from crud.dashboard_user import get_user_by_email_and_role, create_user, get_user, update_user_password
-from utils.token import create_access_token, decode_access_token
+from utils.jwt_helper import create_access_token, decode_access_token, get_current_user
 
 router = APIRouter()
 
@@ -30,7 +30,8 @@ def login_for_access_token(login_request: LoginRequest, db: Session = Depends(ge
     
     access_token_expires = timedelta(weeks=1)
     access_token = create_access_token(
-        data={"user_id": user.id, "role_id": user.role_id, "created_at": str(datetime.utcnow())}, expires_delta=access_token_expires
+        user_id=user.id,
+        role_id=user.role_id
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -39,7 +40,7 @@ def login_for_access_token(login_request: LoginRequest, db: Session = Depends(ge
 def signup(name: str, last_name: str, rawpassword: str, email: str, token: str, db: Session = Depends(get_db)):
     try:
         payload = decode_access_token(token)
-        user_id = payload.get("user_id")
+        user_id = payload.user_id
         if not user_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
         
@@ -51,7 +52,8 @@ def signup(name: str, last_name: str, rawpassword: str, email: str, token: str, 
         
         access_token_expires = timedelta(weeks=1)
         access_token = create_access_token(
-            data={"user_id": updated_user.id, "role_id": updated_user.role_id, "created_at": str(datetime.utcnow())}, expires_delta=access_token_expires
+            user_id=updated_user.id,
+            role_id=updated_user.role_id
         )
         return {"access_token": access_token, "token_type": "bearer"}
     
