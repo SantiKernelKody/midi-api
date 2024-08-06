@@ -1,4 +1,3 @@
-# api/v1/endpoints/performance.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
@@ -24,10 +23,10 @@ def get_schools_admin(db: Session = Depends(get_db)):
 
 @router.get("/get_schools_teacher", response_model=List[EducationalEntityBase])
 def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.user_id == current_user.id).all()
+    schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.reviewer_id == current_user.id).all()
     return schools
 
-@router.get("/get_performance_school")
+@router.post("/get_performance_school")
 def get_performance_school(
     school_id: int,
     start_date: date,
@@ -55,12 +54,14 @@ def get_performance_school(
         for level in levels:
             level_data_query = db.query(PlayerLevel).filter(
                 PlayerLevel.level_id == level.id,
-                PlayerLevel.timestamp.between(start_date, end_date)
+                PlayerLevel.created_at.between(start_date, end_date)
             )
+            if stage_id != 0:  # Si el stage_id es diferente de 'Todos'
+                level_data_query = level_data_query.filter(PlayerLevel.stage_id == stage_id)
             if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
                 level_data_query = level_data_query.join(Player).join(CoursePlayer).join(Course).filter(
                     Course.reviewer_id == current_user.id,
-                    Course.educational_entity_id == school_id
+                    Course.school_id == school_id
                 )
             level_data = level_data_query.all()
             scores = [data.score for data in level_data]
@@ -82,12 +83,14 @@ def get_performance_school(
         for story in stories:
             story_data_query = db.query(PlayerStory).filter(
                 PlayerStory.story_id == story.id,
-                PlayerStory.timestamp.between(start_date, end_date)
+                PlayerStory.created_at.between(start_date, end_date)
             )
+            if stage_id != 0:  # Si el stage_id es diferente de 'Todos'
+                story_data_query = story_data_query.filter(PlayerStory.stage_id == stage_id)
             if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
                 story_data_query = story_data_query.join(Player).join(CoursePlayer).join(Course).filter(
                     Course.reviewer_id == current_user.id,
-                    Course.educational_entity_id == school_id
+                    Course.school_id == school_id
                 )
             story_data = story_data_query.all()
             story_states_data = {"completed": 0, "abandoned": 0}
@@ -103,17 +106,20 @@ def get_performance_school(
             story_times["data"].append(sum([data.time_watched for data in story_data]) / len(story_data) if story_data else 0)
 
     # Lista de cursos y sus promedios
-    courses_query = db.query(Course).filter(Course.educational_entity_id == school_id, Course.game_id == game_id)
+    courses_query = db.query(Course).filter(Course.school_id == school_id)
     if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
         courses_query = courses_query.filter(Course.reviewer_id == current_user.id)
     courses = courses_query.all()
     for course in courses:
         course_students = db.query(PlayerLevel).join(Player).join(CoursePlayer).filter(
             CoursePlayer.course_id == course.id,
-            PlayerLevel.timestamp.between(start_date, end_date)
-        ).all()
+            PlayerLevel.created_at.between(start_date, end_date)
+        )
+        if stage_id != 0:  # Si el stage_id es diferente de 'Todos'
+            course_students = course_students.filter(PlayerLevel.stage_id == stage_id)
+        course_students = course_students.all()
         average_score = sum([data.score for data in course_students]) / len(course_students) if course_students else 0
-        course_list.append({"name_curso": course.name, "id_curso": course.id, "promedio_curso_juego": average_score})
+        course_list.append({"name_curso": course.subject_name, "id_curso": course.id, "promedio_curso_juego": average_score})
 
     return {
         "charpter_grades": charpter_grades,

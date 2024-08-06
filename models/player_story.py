@@ -16,5 +16,5 @@ class PlayerStory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     stage = relationship("Stage", back_populates="player_stories")
-    story = relationship("Story", back_populates="player_stories")
     player = relationship("Player", back_populates="player_stories")
+    story = relationship("Story", back_populates="player_stories")

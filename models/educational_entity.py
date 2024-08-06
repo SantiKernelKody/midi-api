@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, TIMESTAMP
 from db.base_class import Base
+from sqlalchemy.orm import relationship
 
 class EducationalEntity(Base):
     __tablename__ = "educational_entity"
@@ -9,3 +10,5 @@ class EducationalEntity(Base):
     code = Column(String(16), nullable=False)
     description = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, nullable=True)
+
+    player = relationship("Player", back_populates="educational_entity")

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from db.base_class import Base
+from sqlalchemy.orm import relationship
 
 class Stage(Base):
     __tablename__ = "stage"
@@ -7,3 +8,6 @@ class Stage(Base):
     code = Column(String(8))
     name = Column(String(32))
     description = Column(String(128))
+    
+    player_levels = relationship("PlayerLevel", backref="stage")
+    player_stories = relationship("PlayerStory", backref="stage")
