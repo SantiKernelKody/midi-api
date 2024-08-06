@@ -38,36 +38,68 @@ def get_general_headers_admin(db: Session = Depends(get_db)):
         "total_levels": total_levels,
     }
 
-@router.get("/game_header_admin/{game_id}")
-def get_game_header_admin(game_id: int, db: Session = Depends(get_db)):
-    total_players = db.query(PlayerLevel).filter(PlayerLevel.game_id == game_id).count()
-    total_chapters = db.query(Chapter).filter(Chapter.game_id == game_id).count()
-    total_levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).count()
+@router.get("/game_header_admin/{game_id}", response_model=dict)
+def get_game_header_admin(game_id: int, db: Session = Depends(get_db), current_user: DashboardUser = Depends(get_current_user)):
+    # Obtener todos los capítulos relacionados con el juego
+    chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
+    
+    # Obtener los niveles relacionados con estos capítulos
+    chapter_ids = [chapter.id for chapter in chapters]
+    levels = db.query(Level).filter(Level.chapter_id.in_(chapter_ids)).all()
+    
+    # Contar los jugadores que han jugado estos niveles
+    level_ids = [level.id for level in levels]
+    total_players = db.query(PlayerLevel).filter(PlayerLevel.level_id.in_(level_ids)).count()
+    
     return {
         "total_players": total_players,
-        "total_chapters": total_chapters,
-        "total_levels": total_levels,
+        "total_levels": len(levels),
+        "total_chapters": len(chapters)
     }
 
-@router.get("/general_headers_teacher")
-def get_general_headers_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/general_headers_teacher", response_model=dict)
+def get_general_headers_teacher(db: Session = Depends(get_db), current_user: DashboardUser = Depends(get_current_user)):
+    # Obtener el número de cursos que ha creado el usuario
+    total_courses = db.query(Course).filter(Course.reviewer_id == current_user.id).count()
+    
+    # Obtener todos los cursos creados por el usuario
     courses = db.query(Course).filter(Course.reviewer_id == current_user.id).all()
-    return courses
+    course_ids = [course.id for course in courses]
+    
+    # Contar el número total de niños en esos cursos
+    total_players = db.query(CoursePlayer).filter(CoursePlayer.course_id.in_(course_ids)).count()
+    
+    return {
+        "total_courses": total_courses,
+        "total_players": total_players
+    }
+@router.get("/game_header_teacher/{game_id}", response_model=dict)
+def get_game_header_teacher(game_id: int, db: Session = Depends(get_db), current_user: DashboardUser = Depends(get_current_user)):
+    # Obtener cursos creados por el profesor
+    courses = db.query(Course).filter(Course.reviewer_id == current_user.id).all()
+    course_ids = [course.id for course in courses]
 
-@router.get("/game_header_teacher/{game_id}")
-def get_game_header_teacher(game_id: int, current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    total_players = db.query(PlayerLevel).filter(
-        PlayerLevel.game_id == game_id,
-        PlayerLevel.player.has(CoursePlayer.course.has(Course.reviewer_id == current_user.id))
+    # Obtener todos los niños en los cursos del profesor
+    player_ids = db.query(CoursePlayer.player_id).filter(CoursePlayer.course_id.in_(course_ids)).all()
+    player_ids = [player_id[0] for player_id in player_ids]
+
+    # Contar el número de niños que han jugado el juego
+    total_players = db.query(PlayerLevel).join(Level).join(Chapter).filter(
+        PlayerLevel.player_id.in_(player_ids),
+        Chapter.game_id == game_id
     ).count()
-    total_courses = db.query(Course).filter(
+
+    # Contar el número de cursos donde al menos un niño ha jugado el juego
+    total_courses = db.query(Course).join(CoursePlayer).join(PlayerLevel, PlayerLevel.player_id == CoursePlayer.player_id).join(Level).join(Chapter).filter(
         Course.reviewer_id == current_user.id,
-        Course.players.any(PlayerLevel.game_id == game_id)
-    ).count()
+        Chapter.game_id == game_id
+    ).distinct().count()
+
     return {
         "total_players": total_players,
-        "total_courses": total_courses,
+        "total_courses": total_courses
     }
+
 
 @router.get("/kid_list")
 def get_kid_list(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -132,7 +164,6 @@ def get_general_body_admin(game_id: int, db: Session = Depends(get_db)):
         "charpter_states": charpter_states,
         "story_states": story_states,
     }
-
 @router.get("/general_body_teacher/{game_id}")
 def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
     chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
@@ -148,9 +179,9 @@ def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends
         chapter_completed = 0
         chapter_abandoned = 0
         for level in levels:
-            level_data = db.query(PlayerLevel).filter(
+            level_data = db.query(PlayerLevel).join(Player).join(CoursePlayer).join(Course).filter(
                 PlayerLevel.level_id == level.id,
-                PlayerLevel.player.has(CoursePlayer.course.has(Course.reviewer_id == current_user.id))
+                Course.reviewer_id == current_user.id
             ).all()
             scores = [data.score for data in level_data]
             times = [data.total_time for data in level_data]
@@ -175,7 +206,10 @@ def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends
         
         stories = db.query(Story).filter(Story.chapter_id == chapter.id).all()
         for story in stories:
-            story_data = db.query(PlayerStory).filter(PlayerStory.story_id == story.id).all()
+            story_data = db.query(PlayerStory).join(Player).join(CoursePlayer).join(Course).filter(
+                PlayerStory.story_id == story.id,
+                Course.reviewer_id == current_user.id
+            ).all()
             story_states_data = {"completed": 0, "abandoned": 0}
             for data in story_data:
                 if data.state == 'completed':
@@ -194,6 +228,8 @@ def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends
         "charpter_states": charpter_states,
         "story_states": story_states,
     }
+
+
 
 @router.get("/general_body_parent/{game_id}/{player_id}")
 def get_general_body_parent(game_id: int, player_id: int, current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
