@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class EducationalEntityBase(BaseModel):
+    id: int
     name: str
     description: str
 

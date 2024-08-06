@@ -4,29 +4,30 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import date
 
-from schemas import StageBase, EducationalEntityBase
+from schemas.stage import StageBase
+from schemas.educational_entity import EducationalEntityBase
 from models import Stage, EducationalEntity, EducationReviewer, PlayerLevel, PlayerStory, Course, DashboardUser, Chapter, Player, Level, Story, CoursePlayer
 from db.session import get_db
 from utils.jwt_helper import get_current_user
 
 router = APIRouter()
 
-@router.get("/GetStages", response_model=List[StageBase])
+@router.get("/get_stages", response_model=List[StageBase])
 def get_stages(db: Session = Depends(get_db)):
     stages = db.query(Stage).all()
     return stages
 
-@router.get("/GetSchoolsAdmin", response_model=List[EducationalEntityBase])
+@router.get("/get_schools_admin", response_model=List[EducationalEntityBase])
 def get_schools_admin(db: Session = Depends(get_db)):
     schools = db.query(EducationalEntity).all()
     return schools
 
-@router.get("/GetSchoolsTeacher", response_model=List[EducationalEntityBase])
+@router.get("/get_schools_teacher", response_model=List[EducationalEntityBase])
 def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
     schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.user_id == current_user.id).all()
     return schools
 
-@router.get("/GetPerformanceSchool")
+@router.get("/get_performance_school")
 def get_performance_school(
     school_id: int,
     start_date: date,
