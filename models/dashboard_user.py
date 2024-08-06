@@ -13,4 +13,5 @@ class DashboardUser(Base):
     password = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    role = relationship("UserRole")
+    role = relationship("UserRole", back_populates="users")
+    courses = relationship("Course", back_populates="reviewer")

@@ -17,7 +17,7 @@ class Player(Base):
     password = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, nullable=True)
 
-    school = relationship("EducationalEntity", back_populates="player")
     player_levels = relationship("PlayerLevel", back_populates="player")
     player_stories = relationship("PlayerStory", back_populates="player")
+    school = relationship("EducationalEntity", back_populates="players")
     #special_need = relationship("SpecialNeed")

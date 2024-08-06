@@ -11,4 +11,6 @@ class Course(Base):
     subject_name = Column(String(128), nullable=False)
     description = Column(String(255), nullable=True)
 
+    school = relationship("EducationalEntity", back_populates="courses")
+    reviewer = relationship("DashboardUser", back_populates="courses")
     players = relationship("CoursePlayer", back_populates="course")

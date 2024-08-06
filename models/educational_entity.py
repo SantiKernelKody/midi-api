@@ -11,4 +11,5 @@ class EducationalEntity(Base):
     description = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, nullable=True)
 
-    player = relationship("Player", back_populates="educational_entity")
+    players = relationship("Player", back_populates="school")
+    courses = relationship("Course", back_populates="school")
