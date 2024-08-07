@@ -108,190 +108,252 @@ def get_kid_list(current_user: DashboardUser = Depends(get_current_user), db: Se
 
 @router.get("/general_body_admin/{game_id}")
 def get_general_body_admin(game_id: int, db: Session = Depends(get_db)):
-    chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
-    charpter_grades = []
-    charpter_times = []
-    charpter_states = []
-    story_states = []
+    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
+    level_grades = {"labels": [], "data": []}
+    level_times = {"labels": [], "data": []}
+    level_states = {"labels": [], "data": []}
+    story_states = {"labels": [], "data": []}
 
-    for chapter in chapters:
-        levels = db.query(Level).filter(Level.chapter_id == chapter.id).all()
-        chapter_grades_data = []
-        chapter_times_data = []
-        chapter_completed = 0
-        chapter_abandoned = 0
-        for level in levels:
-            level_data = db.query(PlayerLevel).filter(PlayerLevel.level_id == level.id).all()
-            scores = [data.score for data in level_data]
-            times = [data.total_time for data in level_data]
-            states = [data.state for data in level_data]
-            chapter_grades_data.append(sum(scores) / len(scores) if scores else 0)
-            chapter_times_data.append(sum(times) / len(times) if times else 0)
-            chapter_completed += states.count('completed')
-            chapter_abandoned += states.count('abandoned')
-        charpter_grades.append({
-            "chapter": chapter.name,
-            "average_score": sum(chapter_grades_data) / len(chapter_grades_data) if chapter_grades_data else 0
+    for level in levels:
+        level_data = db.query(PlayerLevel).filter(PlayerLevel.level_id == level.id).all()
+        scores = [data.score for data in level_data]
+        times = [data.total_time for data in level_data]
+        states = [data.state for data in level_data]
+        completed = states.count('completed')
+        abandoned = states.count('abandoned')
+        level_grades["labels"].append(level.name)
+        level_grades["data"].append(sum(scores) / len(scores) if scores else 0)
+        level_times["labels"].append(level.name)
+        level_times["data"].append(sum(times) / len(times) if times else 0)
+        level_states["labels"].append(level.name)
+        level_states["data"].append({
+            "label": "Completados",
+            "data": completed
         })
-        charpter_times.append({
-            "chapter": chapter.name,
-            "average_time": sum(chapter_times_data) / len(chapter_times_data) if chapter_times_data else 0
+        level_states["data"].append({
+            "label": "Abandonados",
+            "data": abandoned
         })
-        charpter_states.append({
-            "chapter": chapter.name,
-            "completed": chapter_completed,
-            "abandoned": chapter_abandoned
+
+    stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
+    for story in stories:
+        story_data = db.query(PlayerStory).filter(PlayerStory.story_id == story.id).all()
+        story_completed = 0
+        story_abandoned = 0
+        for data in story_data:
+            if data.state == 'completed':
+                story_completed += 1
+            else:
+                story_abandoned += 1
+        story_states["labels"].append(story.name)
+        story_states["data"].append({
+            "label": "Completados",
+            "data": story_completed
         })
-        
-        stories = db.query(Story).filter(Story.chapter_id == chapter.id).all()
-        for story in stories:
-            story_data = db.query(PlayerStory).filter(PlayerStory.story_id == story.id).all()
-            story_states_data = {"completed": 0, "abandoned": 0}
-            for data in story_data:
-                if data.state == 'completed':
-                    story_states_data["completed"] += 1
-                else:
-                    story_states_data["abandoned"] += 1
-            story_states.append({
-                "story": story.name,
-                "completed": story_states_data["completed"],
-                "abandoned": story_states_data["abandoned"]
-            })
+        story_states["data"].append({
+            "label": "Abandonados",
+            "data": story_abandoned
+        })
 
     return {
-        "charpter_grades": charpter_grades,
-        "charpter_times": charpter_times,
-        "charpter_states": charpter_states,
-        "story_states": story_states,
+        "level_grades": level_grades,
+        "level_times": level_times,
+        "level_states": {
+            "labels": level_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        },
+        "story_states": {
+            "labels": story_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        }
     }
+
 @router.get("/general_body_teacher/{game_id}")
 def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
-    charpter_grades = []
-    charpter_times = []
-    charpter_states = []
-    story_states = []
+    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
+    level_grades = {"labels": [], "data": []}
+    level_times = {"labels": [], "data": []}
+    level_states = {"labels": [], "data": []}
+    story_states = {"labels": [], "data": []}
 
-    for chapter in chapters:
-        levels = db.query(Level).filter(Level.chapter_id == chapter.id).all()
-        chapter_grades_data = []
-        chapter_times_data = []
-        chapter_completed = 0
-        chapter_abandoned = 0
-        for level in levels:
-            level_data = db.query(PlayerLevel).join(Player).join(CoursePlayer).join(Course).filter(
-                PlayerLevel.level_id == level.id,
-                Course.reviewer_id == current_user.id
-            ).all()
-            scores = [data.score for data in level_data]
-            times = [data.total_time for data in level_data]
-            states = [data.state for data in level_data]
-            chapter_grades_data.append(sum(scores) / len(scores) if scores else 0)
-            chapter_times_data.append(sum(times) / len(times) if times else 0)
-            chapter_completed += states.count('completed')
-            chapter_abandoned += states.count('abandoned')
-        charpter_grades.append({
-            "chapter": chapter.name,
-            "average_score": sum(chapter_grades_data) / len(chapter_grades_data) if chapter_grades_data else 0
+    for level in levels:
+        level_data = db.query(PlayerLevel).join(Player).join(CoursePlayer).join(Course).filter(
+            PlayerLevel.level_id == level.id,
+            Course.reviewer_id == current_user.id
+        ).all()
+        scores = [data.score for data in level_data]
+        times = [data.total_time for data in level_data]
+        states = [data.state for data in level_data]
+        completed = states.count('completed')
+        abandoned = states.count('abandoned')
+        level_grades["labels"].append(level.name)
+        level_grades["data"].append(sum(scores) / len(scores) if scores else 0)
+        level_times["labels"].append(level.name)
+        level_times["data"].append(sum(times) / len(times) if times else 0)
+        level_states["labels"].append(level.name)
+        level_states["data"].append({
+            "label": "Completados",
+            "data": completed
         })
-        charpter_times.append({
-            "chapter": chapter.name,
-            "average_time": sum(chapter_times_data) / len(chapter_times_data) if chapter_times_data else 0
+        level_states["data"].append({
+            "label": "Abandonados",
+            "data": abandoned
         })
-        charpter_states.append({
-            "chapter": chapter.name,
-            "completed": chapter_completed,
-            "abandoned": chapter_abandoned
+
+    stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
+    for story in stories:
+        story_data = db.query(PlayerStory).join(Player).join(CoursePlayer).join(Course).filter(
+            PlayerStory.story_id == story.id,
+            Course.reviewer_id == current_user.id
+        ).all()
+        story_completed = 0
+        story_abandoned = 0
+        for data in story_data:
+            if data.state == 'completed':
+                story_completed += 1
+            else:
+                story_abandoned += 1
+        story_states["labels"].append(story.name)
+        story_states["data"].append({
+            "label": "Completados",
+            "data": story_completed
         })
-        
-        stories = db.query(Story).filter(Story.chapter_id == chapter.id).all()
-        for story in stories:
-            story_data = db.query(PlayerStory).join(Player).join(CoursePlayer).join(Course).filter(
-                PlayerStory.story_id == story.id,
-                Course.reviewer_id == current_user.id
-            ).all()
-            story_states_data = {"completed": 0, "abandoned": 0}
-            for data in story_data:
-                if data.state == 'completed':
-                    story_states_data["completed"] += 1
-                else:
-                    story_states_data["abandoned"] += 1
-            story_states.append({
-                "story": story.name,
-                "completed": story_states_data["completed"],
-                "abandoned": story_states_data["abandoned"]
-            })
+        story_states["data"].append({
+            "label": "Abandonados",
+            "data": story_abandoned
+        })
 
     return {
-        "charpter_grades": charpter_grades,
-        "charpter_times": charpter_times,
-        "charpter_states": charpter_states,
-        "story_states": story_states,
+        "level_grades": level_grades,
+        "level_times": level_times,
+        "level_states": {
+            "labels": level_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        },
+        "story_states": {
+            "labels": story_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        }
     }
-
-
 
 @router.get("/general_body_parent/{game_id}/{player_id}")
 def get_general_body_parent(game_id: int, player_id: int, current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
-    charpter_grades = []
-    charpter_times = []
-    charpter_states = []
-    story_states = []
+    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
+    level_grades = {"labels": [], "data": []}
+    level_times = {"labels": [], "data": []}
+    level_states = {"labels": [], "data": []}
+    story_states = {"labels": [], "data": []}
 
-    for chapter in chapters:
-        levels = db.query(Level).filter(Level.chapter_id == chapter.id).all()
-        chapter_grades_data = []
-        chapter_times_data = []
-        chapter_completed = 0
-        chapter_abandoned = 0
-        for level in levels:
-            level_data = db.query(PlayerLevel).filter(
-                PlayerLevel.level_id == level.id,
-                PlayerLevel.player_id == player_id
-            ).all()
-            scores = [data.score for data in level_data]
-            times = [data.total_time for data in level_data]
-            states = [data.state for data in level_data]
-            chapter_grades_data.append(sum(scores) / len(scores) if scores else 0)
-            chapter_times_data.append(sum(times) / len(times) if times else 0)
-            chapter_completed += states.count('completed')
-            chapter_abandoned += states.count('abandoned')
-        charpter_grades.append({
-            "chapter": chapter.name,
-            "average_score": sum(chapter_grades_data) / len(chapter_grades_data) if chapter_grades_data else 0
+    for level in levels:
+        level_data = db.query(PlayerLevel).filter(
+            PlayerLevel.level_id == level.id,
+            PlayerLevel.player_id == player_id
+        ).all()
+        scores = [data.score for data in level_data]
+        times = [data.total_time for data in level_data]
+        states = [data.state for data in level_data]
+        completed = states.count('completed')
+        abandoned = states.count('abandoned')
+        level_grades["labels"].append(level.name)
+        level_grades["data"].append(sum(scores) / len(scores) if scores else 0)
+        level_times["labels"].append(level.name)
+        level_times["data"].append(sum(times) / len(times) if times else 0)
+        level_states["labels"].append(level.name)
+        level_states["data"].append({
+            "label": "Completados",
+            "data": completed
         })
-        charpter_times.append({
-            "chapter": chapter.name,
-            "average_time": sum(chapter_times_data) / len(chapter_times_data) if chapter_times_data else 0
+        level_states["data"].append({
+            "label": "Abandonados",
+            "data": abandoned
         })
-        charpter_states.append({
-            "chapter": chapter.name,
-            "completed": chapter_completed,
-            "abandoned": chapter_abandoned
+
+    stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
+    for story in stories:
+        story_data = db.query(PlayerStory).filter(
+            PlayerStory.story_id == story.id,
+            PlayerStory.player_id == player_id
+        ).all()
+        story_completed = 0
+        story_abandoned = 0
+        for data in story_data:
+            if data.state == 'completed':
+                story_completed += 1
+            else:
+                story_abandoned += 1
+        story_states["labels"].append(story.name)
+        story_states["data"].append({
+            "label": "Completados",
+            "data": story_completed
         })
-        
-        stories = db.query(Story).filter(Story.chapter_id == chapter.id).all()
-        for story in stories:
-            story_data = db.query(PlayerStory).filter(
-                PlayerStory.story_id == story.id,
-                PlayerStory.player_id == player_id
-            ).all()
-            story_states_data = {"completed": 0, "abandoned": 0}
-            for data in story_data:
-                if data.state == 'completed':
-                    story_states_data["completed"] += 1
-                else:
-                    story_states_data["abandoned"] += 1
-            story_states.append({
-                "story": story.name,
-                "completed": story_states_data["completed"],
-                "abandoned": story_states_data["abandoned"]
-            })
+        story_states["data"].append({
+            "label": "Abandonados",
+            "data": story_abandoned
+        })
 
     return {
-        "charpter_grades": charpter_grades,
-        "charpter_times": charpter_times,
-        "charpter_states": charpter_states,
-        "story_states": story_states,
+        "level_grades": level_grades,
+        "level_times": level_times,
+        "level_states": {
+            "labels": level_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        },
+        "story_states": {
+            "labels": story_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        }
     }
