@@ -23,3 +23,8 @@ from .stage import Stage, StageCreate, StageUpdate
 from .story import Story, StoryCreate, StoryUpdate
 from .user_role import UserRole, UserRoleCreate, UserRoleUpdate
 from .country import Country, CountryCreate, CountryUpdate
+from .dashboard_user import DashboardUser, DashboardUserCreate
+from .game_data import GameDataCreate
+from .player import Player, PlayerCreate, PlayerUpdate
+from .token import Token, TokenData
+from .auth import LoginRequest

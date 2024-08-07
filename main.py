@@ -1,24 +1,23 @@
 from fastapi import FastAPI
-from api.v1.endpoints import games
-from db.session import engine
-from db.base import Base
+import uvicorn
+from api.v1.endpoints import games, auth, general, performance
+from db.session import engine, Base
+from middlewares.auth import AuthMiddleware
 
-# Create the database tables
+# Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="MIDI API",
-    description="API para recibir y procesar datos de juegos educativos",
-    version="1.0.0"
-)
+app = FastAPI()
 
-# Include the router for the games endpoint
+# Montar el middleware y especificar las rutas protegidas
+protected_paths = ["/api/v1/dashboard/general","/api/v1/dashboard/performance"]
+app.add_middleware(AuthMiddleware, protected_paths=protected_paths)
+
+# Montar las rutas
 app.include_router(games.router, prefix="/api/v1/games", tags=["games"])
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the MIDI API"}
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(general.router, prefix="/api/v1/dashboard/general", tags=["General"])
+app.include_router(performance.router, prefix="/api/v1/dashboard/performance", tags=["Performance"])
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="debug", reload=True)

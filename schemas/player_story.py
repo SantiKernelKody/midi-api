@@ -7,6 +7,7 @@ class PlayerStoryBase(BaseModel):
     total_time_out: int
     pauses: int
     times_out_focus: int
+    state: Optional[str] = None
 
 class PlayerStoryCreate(PlayerStoryBase):
     story_id: int

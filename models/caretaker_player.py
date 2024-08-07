@@ -5,7 +5,7 @@ from db.base_class import Base
 class CaretakerPlayer(Base):
     __tablename__ = "caretaker_player"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     representative_id = Column(Integer, ForeignKey("dashboard_user.id"))
     player_id = Column(Integer, ForeignKey("player.id"))
 
