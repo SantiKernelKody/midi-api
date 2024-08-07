@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import date
@@ -26,17 +26,17 @@ def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user),
     schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.reviewer_id == current_user.id).all()
     return schools
 
-@router.post("/get_performance_school")
+
+@router.get("/get_performance_school")
 def get_performance_school(
-    school_id: int,
-    start_date: date,
-    end_date: date,
-    stage_id: int,
-    game_id: int,
+    school_id: int = Query(...),
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    stage_id: int = Query(...),
+    game_id: int = Query(...),
     current_user: DashboardUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    # Obtención de capítulos y cálculo de promedios
     chapters = db.query(Chapter).filter(Chapter.game_id == game_id).all()
     charpter_grades = {"labels": [], "data": []}
     charpter_times = {"labels": [], "data": []}

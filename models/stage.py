@@ -8,6 +8,6 @@ class Stage(Base):
     code = Column(String(8))
     name = Column(String(32))
     description = Column(String(128))
-    
-    player_levels = relationship("PlayerLevel", backref="stage")
-    player_stories = relationship("PlayerStory", backref="stage")
+
+    player_levels = relationship("PlayerLevel", back_populates="stage")
+    player_stories = relationship("PlayerStory", back_populates="stage")

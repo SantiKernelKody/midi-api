@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from datetime import datetime
 from db.base_class import Base
+from sqlalchemy.orm import relationship
 
 class Level(Base):
     __tablename__ = "level"
@@ -12,3 +13,6 @@ class Level(Base):
     evaluation_method = Column(Text)
     max_score = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    chapter = relationship("Chapter", back_populates="levels")
+    player_levels = relationship("PlayerLevel", back_populates="level")

@@ -18,6 +18,6 @@ class PlayerLevel(Base):
     state = Column(String(64))
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    stage = relationship("Stage", back_populates="player_levels")
-    player = relationship("Player", back_populates="player_levels")
     level = relationship("Level", back_populates="player_levels")
+    player = relationship("Player", back_populates="player_levels")
+    stage = relationship("Stage", back_populates="player_levels")
