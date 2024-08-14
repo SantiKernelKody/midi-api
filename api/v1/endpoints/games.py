@@ -37,6 +37,15 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
     if not school:
         school = db.query(EducationalEntity).filter(EducationalEntity.code == "ES000").first()
 
+    # Convertir estado de español a inglés
+    estado = game_data.estado.lower()
+    if estado == "completado":
+        estado = "completed"
+    elif estado == "abandonado":
+        estado = "abandoned"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid estado value.")
+
     # Procesamiento de datos según el tipo
     if game_data.tipo == "jugador":
         # Procesamiento para jugador
@@ -62,7 +71,8 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
             correct=game_data.correctas,
             attempts=1,  # Assuming attempts is 1
             total_time=game_data.tiempo_juego,  # Usando tiempo_juego como total_time
-            times_out_focus=game_data.duracion  # Assuming times_out_focus is duracion
+            times_out_focus=game_data.duracion,  # Assuming times_out_focus is duracion
+            state=estado  # Usando el estado convertido
         )
         
         return {"detail": "Game data saved successfully"}
@@ -81,7 +91,8 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
             time_watched=game_data.tiempo_juego,  # Usando tiempo_juego como time_watched
             total_time_out=game_data.duracion,  # Usando duracion como total_time_out
             pauses=0,  # Assuming pauses is 0
-            times_out_focus=game_data.duracion  # Assuming times_out_focus is duracion
+            times_out_focus=game_data.duracion,  # Assuming times_out_focus is duracion
+            state=estado  # Usando el estado convertido
         )
         
         return {"detail": "Story data saved successfully"}

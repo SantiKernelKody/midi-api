@@ -4,10 +4,10 @@ from datetime import datetime
 
 class LevelBase(BaseModel):
     name: str
-    description: str
-    evaluation_criteria: str
-    evaluation_method: str
-    max_score: int
+    description: Optional[str]
+    evaluation_criteria: Optional[str]
+    evaluation_method: Optional[str]
+    max_score: Optional[int]
 
 class LevelCreate(LevelBase):
     chapter_id: int

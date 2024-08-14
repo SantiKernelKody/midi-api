@@ -1,8 +1,9 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class AvatarBase(BaseModel):
     name: str
-    description: str
+    description: Optional[str]
 
 class AvatarCreate(AvatarBase):
     pass

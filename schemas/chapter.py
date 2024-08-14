@@ -4,7 +4,7 @@ from typing import Optional
 
 class ChapterBase(BaseModel):
     name: str
-    description: str
+    description: Optional[str]
 
 class ChapterCreate(ChapterBase):
     game_id: int

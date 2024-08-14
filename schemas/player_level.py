@@ -6,9 +6,9 @@ class PlayerLevelBase(BaseModel):
     score: float
     incorrect: int
     correct: int
-    attempts: int
+    attempts: Optional[int]
     total_time: int
-    times_out_focus: int
+    times_out_focus: Optional[int]
     state: Optional[str] = None
 
 class PlayerLevelCreate(PlayerLevelBase):

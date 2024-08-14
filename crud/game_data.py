@@ -80,7 +80,7 @@ def create_room(db: Session, avatar_id: int, player_id: int):
     db.refresh(room)
     return room
 
-def create_player_level(db: Session, player_id: int, level_id: int, stage_id: int, score: float, incorrect: int, correct: int, attempts: int, total_time: int, times_out_focus: int):
+def create_player_level(db: Session, player_id: int, level_id: int, stage_id: int, score: float, incorrect: int, correct: int, attempts: int, total_time: int, times_out_focus: int, state: str):
     player_level = PlayerLevel(
         player_id=player_id,
         level_id=level_id,
@@ -90,14 +90,15 @@ def create_player_level(db: Session, player_id: int, level_id: int, stage_id: in
         correct=correct,
         attempts=attempts,
         total_time=total_time,
-        times_out_focus=times_out_focus
+        times_out_focus=times_out_focus,
+        state=state
     )
     db.add(player_level)
     db.commit()
     db.refresh(player_level)
     return player_level
 
-def create_player_story(db: Session, player_id: int, story_id: int, stage_id: int, time_watched: int, total_time_out: int, pauses: int, times_out_focus: int):
+def create_player_story(db: Session, player_id: int, story_id: int, stage_id: int, time_watched: int, total_time_out: int, pauses: int, times_out_focus: int, state: str):
     player_story = PlayerStory(
         player_id=player_id,
         story_id=story_id,
@@ -105,7 +106,8 @@ def create_player_story(db: Session, player_id: int, story_id: int, stage_id: in
         time_watched=time_watched,
         total_time_out=total_time_out,
         pauses=pauses,
-        times_out_focus=times_out_focus
+        times_out_focus=times_out_focus,
+        state=state
     )
     db.add(player_story)
     db.commit()
