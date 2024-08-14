@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import date
 
+from models.caretaker_player import CaretakerPlayer
 from schemas.stage import StageBase
 from schemas.educational_entity import EducationalEntityBase
 from models import Stage, EducationalEntity, EducationReviewer, PlayerLevel, PlayerStory, Course, DashboardUser, Chapter, Player, Level, Story, CoursePlayer
@@ -25,6 +26,29 @@ def get_schools_admin(db: Session = Depends(get_db)):
 def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
     schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.reviewer_id == current_user.id).all()
     return schools
+@router.get("/get_courses")
+def get_courses(
+    school_id: int = Query(...),
+    current_user: DashboardUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    # Consulta básica de cursos basada en el school_id
+    courses_query = db.query(Course).filter(Course.school_id == school_id)
+    
+    # Si el usuario no es admin, filtrar solo los cursos creados por el profesor
+    if current_user.role_id != 1:  # Verifica que no sea admin
+        courses_query = courses_query.filter(Course.reviewer_id == current_user.id)
+
+    # Obtener la lista de cursos
+    courses = courses_query.all()
+
+    # Preparar la respuesta con nombre e id de cada curso
+    course_list = [{"id": course.id, "name": course.subject_name} for course in courses]
+
+    return {
+        "courses": course_list
+    }
+
 @router.get("/get_performance_school")
 def get_performance_school(
     school_id: int = Query(...),
@@ -292,4 +316,101 @@ def get_performance_course(
         },
         "story_times": story_times,
         "student_list": student_list,
+    }
+
+@router.get("/get_performance_kid")
+def get_performance_kid(
+    player_id: int = Query(...),
+    game_id: int = Query(...),
+    current_user: DashboardUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    # Validar que el jugador existe
+    player = db.query(Player).filter(Player.id == player_id).first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Obtener la última sesión de PlayerLevel y PlayerStory
+    last_player_level = db.query(PlayerLevel).join(Level).join(Chapter).filter(
+        PlayerLevel.player_id == player_id,
+        Chapter.game_id == game_id
+    ).order_by(PlayerLevel.created_at.desc()).first()
+
+    last_player_story = db.query(PlayerStory).join(Story).join(Chapter).filter(
+        PlayerStory.player_id == player_id,
+        Chapter.game_id == game_id
+    ).order_by(PlayerStory.created_at.desc()).first()
+
+    level_grades = {"labels": [], "data": []}
+    level_times = {"labels": [], "data": []}
+    level_states = {"labels": [], "data": []}
+    story_states = {"labels": [], "data": []}
+    story_times = {"labels": [], "data": []}
+
+    if last_player_level:
+        level = db.query(Level).filter(Level.id == last_player_level.level_id).first()
+        level_grades["labels"].append(level.name)
+        level_grades["data"].append(last_player_level.score)
+        level_times["labels"].append(level.name)
+        level_times["data"].append(last_player_level.total_time)
+        level_states["labels"].append(level.name)
+        level_states["data"].append({
+            "label": "Completados" if last_player_level.state == "completed" else "Abandonados",
+            "data": 1
+        })
+
+    if last_player_story:
+        story = db.query(Story).filter(Story.id == last_player_story.story_id).first()
+        story_states["labels"].append(story.name)
+        story_states["data"].append({
+            "label": "Completados" if last_player_story.state == "completed" else "Abandonados",
+            "data": 1
+        })
+        story_times["labels"].append(story.name)
+        story_times["data"].append(last_player_story.time_watched)
+
+    # Obtener datos del jugador y su representante
+    caretaker = db.query(DashboardUser).join(CaretakerPlayer).filter(CaretakerPlayer.player_id == player_id).first()
+
+    player_data = {
+        "full_name": player.full_name,
+        "age": player.edad,
+        "ethnicity": player.ethnicity,
+        "email": player.user_name,  # Asumiendo que el correo es el nombre de usuario
+        "caretaker_name": caretaker.name if caretaker else None,
+        "caretaker_email": caretaker.email if caretaker else None
+
+    }
+
+    return {
+        "level_grades": level_grades,
+        "level_times": level_times,
+        "level_states": {
+            "labels": level_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        },
+        "story_states": {
+            "labels": story_states["labels"],
+            "data": [
+                {
+                    "label": "Completados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                },
+                {
+                    "label": "Abandonados",
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                }
+            ]
+        },
+        "story_times": story_times,
+        "player_data": player_data
     }
