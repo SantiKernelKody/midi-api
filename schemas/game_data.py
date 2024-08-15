@@ -1,13 +1,24 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional
 from datetime import datetime
 
-class GameDataBase(BaseModel):
-    nombre_juego: str
+class GameDataCreate(BaseModel):
     tipo: str
-    avatar_id: Optional[int] = None
-    nombre_jugador: Optional[str] = None
-    id_registro: Optional[int] = None
+    avatar: Optional[str] = None
+    nombre_juego: str
+    descripcion_juego: Optional[str] = None
+    nombre_capitulo: Optional[str] = None
+    descripcion_capitulo: Optional[str] = None
+    nombre_nivel: Optional[str] = None
+    descripcion_nivel: Optional[str] = None
+    correctas: Optional[int] = None
+    incorrectas: Optional[int] = None
+    tiempo_juego: Optional[int] = None
+    duracion: Optional[int] = None
+    nombre_historia: Optional[str] = None
+    descripcion_historia: Optional[str] = None
+    estado: Optional[str] = None
+    id_registro: str
     fecha_inicio_saludo: Optional[datetime] = None
     fecha_inicio_nombre: Optional[datetime] = None
     fecha_fin_nombre: Optional[datetime] = None
@@ -15,20 +26,13 @@ class GameDataBase(BaseModel):
     fecha_fin_creditos: Optional[datetime] = None
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
-    tiempo_juego: Optional[int] = None
-    estado: Optional[str] = None
-    correctas: Optional[int] = None
-    incorrectas: Optional[int] = None
-    nombre_capitulo: Optional[str] = None
-    descripcion_capitulo: Optional[str] = None
-    nombre_historia: Optional[str] = None
-    descripcion_historia: Optional[str] = None
-    nombre_nivel: Optional[str] = None
-    descripcion_nivel: Optional[str] = None
-    duracion: Optional[int] = None
 
-class GameDataCreate(GameDataBase):
-    pass
+    @validator('fecha_inicio_saludo', 'fecha_inicio_nombre', 'fecha_fin_nombre', 
+               'fecha_inicio_creditos', 'fecha_fin_creditos', 'fecha_inicio', 'fecha_fin', pre=True, always=True)
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
-class GameDataUpdate(GameDataBase):
-    pass
+    class Config:
+        orm_mode = True

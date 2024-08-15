@@ -3,12 +3,20 @@ import uvicorn
 from api.v1.endpoints import games, auth, general, performance
 from db.session import engine, Base
 from middlewares.auth import AuthMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 # Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir todas las orígenes. Para mayor seguridad, especifica los dominios permitidos.
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos los métodos HTTP
+    allow_headers=["*"],  # Permitir todos los headers
+)
 # Montar el middleware y especificar las rutas protegidas
 protected_paths = ["/api/v1/dashboard/general","/api/v1/dashboard/performance"]
 app.add_middleware(AuthMiddleware, protected_paths=protected_paths)

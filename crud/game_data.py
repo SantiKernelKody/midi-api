@@ -8,6 +8,7 @@ from models.avatar import Avatar
 from models.player import Player
 from models.player_level import PlayerLevel
 from models.player_story import PlayerStory
+from models.story import Story
 
 def create_or_get_game(db: Session, name: str):
     game = db.query(Game).filter(Game.name == name).first()
@@ -63,22 +64,51 @@ def create_or_get_level(db: Session, name: str, description: str, chapter_id: in
         db.refresh(level)
     return level
 
-def create_room(db: Session, stage_id: int, avatar_id: int, player_id: int):
-    room = Room(id_stage=stage_id, id_avatar=avatar_id, player_id=player_id)
+def create_or_get_story(db: Session, name: str, description: str, chapter_id: int):
+    story = db.query(Story).filter(Story.name == name, Story.chapter_id == chapter_id).first()
+    if not story:
+        story = Story(name=name, description=description, chapter_id=chapter_id)
+        db.add(story)
+        db.commit()
+        db.refresh(story)
+    return story
+
+def create_room(db: Session, avatar_id: int, player_id: int):
+    room = Room(id_avatar=avatar_id, player_id=player_id)
     db.add(room)
     db.commit()
     db.refresh(room)
     return room
 
-def create_player_level(db: Session, player_id: int, level_id: int, score: float, incorrect: int, correct: int, attempts: int, total_time: int, times_out_focus: int):
-    player_level = PlayerLevel(player_id=player_id, level_id=level_id, score=score, incorrect=incorrect, correct=correct, attempts=attempts, total_time=total_time, times_out_focus=times_out_focus)
+def create_player_level(db: Session, player_id: int, level_id: int, stage_id: int, score: float, incorrect: int, correct: int, attempts: int, total_time: int, times_out_focus: int, state: str):
+    player_level = PlayerLevel(
+        player_id=player_id,
+        level_id=level_id,
+        stage_id=stage_id,
+        score=score,
+        incorrect=incorrect,
+        correct=correct,
+        attempts=attempts,
+        total_time=total_time,
+        times_out_focus=times_out_focus,
+        state=state
+    )
     db.add(player_level)
     db.commit()
     db.refresh(player_level)
     return player_level
 
-def create_player_story(db: Session, player_id: int, story_id: int, time_watched: int, total_time_out: int, pauses: int, times_out_focus: int):
-    player_story = PlayerStory(player_id=player_id, story_id=story_id, time_watched=time_watched, total_time_out=total_time_out, pauses=pauses, times_out_focus=times_out_focus)
+def create_player_story(db: Session, player_id: int, story_id: int, stage_id: int, time_watched: int, total_time_out: int, pauses: int, times_out_focus: int, state: str):
+    player_story = PlayerStory(
+        player_id=player_id,
+        story_id=story_id,
+        stage_id=stage_id,
+        time_watched=time_watched,
+        total_time_out=total_time_out,
+        pauses=pauses,
+        times_out_focus=times_out_focus,
+        state=state
+    )
     db.add(player_story)
     db.commit()
     db.refresh(player_story)

@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime
-
+from typing import Optional
 class GameBase(BaseModel):
     name: str
     description: str
-    logo_game: str
+    logo_game: Optional[str]
 
 class GameCreate(GameBase):
     pass

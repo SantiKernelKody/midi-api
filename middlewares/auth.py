@@ -11,6 +11,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+
+        # Permitir que las solicitudes OPTIONS pasen sin autenticación
+        if request.method == "OPTIONS":
+            response = Response(status_code=204)
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+            return response
+
+        # Si la solicitud no es OPTIONS, verificar la autenticación
         if any(path.startswith(p) for p in self.protected_paths):
             auth_header = request.headers.get("Authorization")
             if auth_header is None or not auth_header.startswith("Bearer "):
@@ -22,7 +32,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             token = auth_header.split(" ")[1]
             try:
                 token_data = decode_access_token(token)
-                print(f"Token data in middleware: {token_data}")
                 request.state.user = token_data  # Attach token data to request state
             except HTTPException as e:
                 return Response(
@@ -30,4 +39,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     status_code=e.status_code,
                     media_type="application/json"
                 )
-        return await call_next(request)
+
+        # Continuar con la solicitud si todo está bien
+        response = await call_next(request)
+        return response
