@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from models.game import Game as GameModel
 from schemas.game import Game as GameSchema
+from utils.email import send_signup_email
 from utils.jwt_helper import  get_current_user
 from models.dashboard_user import DashboardUser
 from models.player import Player
@@ -24,6 +25,14 @@ def get_games(db: Session = Depends(get_db), current_user: DashboardUser = Depen
     games = db.query(GameModel).all()
     return games
 
+@router.post("/send-signup-email")
+def send_signup_email_route():
+    try:
+        send_signup_email('tagoandres2000@hotmail.com', 'Padre de familia', 'prueba_hash')
+        return {"message": "Sign-up email sent"}
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return {"message": "Failed to send sign-up email"}, 500
 
 @router.get("/general_headers_admin")
 def get_general_headers_admin(db: Session = Depends(get_db)):

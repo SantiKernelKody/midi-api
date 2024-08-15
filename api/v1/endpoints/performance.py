@@ -67,13 +67,17 @@ def get_performance_school(
     story_times = {"labels": [], "data": []}
     course_list = []
 
+    # Verificar si el stage es "Todos"
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    filter_by_stage = stage.code != "Todos" if stage else True
     for level in levels:
         level_data_query = db.query(PlayerLevel).filter(
             PlayerLevel.level_id == level.id,
             PlayerLevel.created_at.between(start_date, end_date)
         )
-        if stage_id != 0:  # Filtrar por stage si no es "Todos"
+        if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             level_data_query = level_data_query.filter(PlayerLevel.stage_id == stage_id)
+        
         if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
             level_data_query = level_data_query.join(Player).join(CoursePlayer).join(Course).filter(
                 Course.reviewer_id == current_user.id,
@@ -101,13 +105,17 @@ def get_performance_school(
 
     # Procesar historias
     stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
+    # Verificar si el stage es "Todos"
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    filter_by_stage = stage.code != "Todos" if stage else True
     for story in stories:
         story_data_query = db.query(PlayerStory).filter(
             PlayerStory.story_id == story.id,
             PlayerStory.created_at.between(start_date, end_date)
         )
-        if stage_id != 0:  # Filtrar por stage si no es "Todos"
+        if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             story_data_query = story_data_query.filter(PlayerStory.stage_id == stage_id)
+
         if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
             story_data_query = story_data_query.join(Player).join(CoursePlayer).join(Course).filter(
                 Course.reviewer_id == current_user.id,
@@ -207,13 +215,16 @@ def get_performance_course(
     story_times = {"labels": [], "data": []}
     student_list = []
 
+    # Verificar si el stage es "Todos"
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    filter_by_stage = stage.code != "Todos" if stage else True
     for level in levels:
         level_data_query = db.query(PlayerLevel).join(Player).join(CoursePlayer).filter(
             PlayerLevel.level_id == level.id,
             PlayerLevel.created_at.between(start_date, end_date),
             CoursePlayer.course_id == course_id
         )
-        if stage_id != 0:  # Filtrar por stage si no es "Todos"
+        if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             level_data_query = level_data_query.filter(PlayerLevel.stage_id == stage_id)
         
         level_data = level_data_query.all()
@@ -244,7 +255,7 @@ def get_performance_course(
             PlayerStory.created_at.between(start_date, end_date),
             CoursePlayer.course_id == course_id
         )
-        if stage_id != 0:  # Filtrar por stage si no es "Todos"
+        if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             story_data_query = story_data_query.filter(PlayerStory.stage_id == stage_id)
         
         story_data = story_data_query.all()
