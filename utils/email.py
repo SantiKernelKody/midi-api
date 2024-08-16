@@ -6,7 +6,6 @@ from core.config import settings
 
 def send_email(to_email: str, subject: str, template_name: str, context: dict):
     # Cargar el template usando Jinja2
-    print("Antes de cargar el template")
     env = Environment(loader=FileSystemLoader('templates'))
     template = env.get_template(template_name)
     html_content = template.render(context)
@@ -20,7 +19,6 @@ def send_email(to_email: str, subject: str, template_name: str, context: dict):
     # Adjuntar el contenido HTML
     message.attach(MIMEText(html_content, "html"))
 
-    print("Antes de enviar el correo")
     
     # Conexión al servidor SMTP usando SSL
     with smtplib.SMTP('smtp-mail.outlook.com', 587) as server:

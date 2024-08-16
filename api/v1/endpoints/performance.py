@@ -70,29 +70,33 @@ def get_performance_school(
     # Verificar si el stage es "Todos"
     stage = db.query(Stage).filter(Stage.id == stage_id).first()
     filter_by_stage = stage.code != "Todos" if stage else True
+
     for level in levels:
-        level_data_query = db.query(PlayerLevel).filter(
+        level_data_query = db.query(PlayerLevel).join(Player).join(CoursePlayer).join(Course).filter(
             PlayerLevel.level_id == level.id,
-            PlayerLevel.created_at.between(start_date, end_date)
+            PlayerLevel.created_at.between(start_date, end_date),
+            Course.school_id == school_id  # Filtrar por escuela
         )
+
         if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             level_data_query = level_data_query.filter(PlayerLevel.stage_id == stage_id)
         
         if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
-            level_data_query = level_data_query.join(Player).join(CoursePlayer).join(Course).filter(
-                Course.reviewer_id == current_user.id,
-                Course.school_id == school_id
-            )
+            level_data_query = level_data_query.filter(Course.reviewer_id == current_user.id)
+        
         level_data = level_data_query.all()
         scores = [data.score for data in level_data]
         times = [data.total_time for data in level_data]
         states = [data.state for data in level_data]
+
         level_grades["labels"].append(level.name)
-        level_grades["data"].append(sum(scores) / len(scores) if scores else 0)
+        level_grades["data"].append(round(sum(scores) / len(scores), 2) if scores else 0)
         level_times["labels"].append(level.name)
-        level_times["data"].append(sum(times) / len(times) if times else 0)
+        level_times["data"].append(round(sum(times) / len(times), 2) if times else 0)
+
         completed = states.count('completed')
         abandoned = states.count('abandoned')
+
         level_states["labels"].append(level.name)
         level_states["data"].append({
             "label": "Completados",
@@ -105,30 +109,29 @@ def get_performance_school(
 
     # Procesar historias
     stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
-    # Verificar si el stage es "Todos"
-    stage = db.query(Stage).filter(Stage.id == stage_id).first()
-    filter_by_stage = stage.code != "Todos" if stage else True
     for story in stories:
-        story_data_query = db.query(PlayerStory).filter(
+        story_data_query = db.query(PlayerStory).join(Player).join(CoursePlayer).join(Course).filter(
             PlayerStory.story_id == story.id,
-            PlayerStory.created_at.between(start_date, end_date)
+            PlayerStory.created_at.between(start_date, end_date),
+            Course.school_id == school_id  # Filtrar por escuela
         )
+
         if filter_by_stage:  # Filtrar por stage solo si no es "Todos"
             story_data_query = story_data_query.filter(PlayerStory.stage_id == stage_id)
 
         if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
-            story_data_query = story_data_query.join(Player).join(CoursePlayer).join(Course).filter(
-                Course.reviewer_id == current_user.id,
-                Course.school_id == school_id
-            )
+            story_data_query = story_data_query.filter(Course.reviewer_id == current_user.id)
+
         story_data = story_data_query.all()
         story_completed = 0
         story_abandoned = 0
+
         for data in story_data:
             if data.state == 'completed':
                 story_completed += 1
             else:
                 story_abandoned += 1
+
         story_states["labels"].append(story.name)
         story_states["data"].append({
             "label": "Completados",
@@ -139,19 +142,20 @@ def get_performance_school(
             "data": story_abandoned
         })
         story_times["labels"].append(story.name)
-        story_times["data"].append(sum([data.time_watched for data in story_data]) / len(story_data) if story_data else 0)
+        story_times["data"].append(round(sum([data.time_watched for data in story_data]) / len(story_data), 2) if story_data else 0)
 
     # Lista de cursos y sus promedios
     courses_query = db.query(Course).filter(Course.school_id == school_id)
     if current_user.role_id != 1:  # Si no es admin, filtrar por cursos del profesor
         courses_query = courses_query.filter(Course.reviewer_id == current_user.id)
+
     courses = courses_query.all()
     for course in courses:
         course_students = db.query(PlayerLevel).join(Player).join(CoursePlayer).filter(
             CoursePlayer.course_id == course.id,
             PlayerLevel.created_at.between(start_date, end_date)
         ).all()
-        average_score = sum([data.score for data in course_students]) / len(course_students) if course_students else 0
+        average_score = round(sum([data.score for data in course_students]) / len(course_students), 2) if course_students else 0
         course_list.append({"name_curso": course.subject_name, "id_curso": course.id, "promedio_curso_juego": average_score})
 
     return {
@@ -232,9 +236,9 @@ def get_performance_course(
         times = [data.total_time for data in level_data]
         states = [data.state for data in level_data]
         level_grades["labels"].append(level.name)
-        level_grades["data"].append(sum(scores) / len(scores) if scores else 0)
+        level_grades["data"].append(round(sum(scores) / len(scores), 2) if scores else 0)
         level_times["labels"].append(level.name)
-        level_times["data"].append(sum(times) / len(times) if times else 0)
+        level_times["data"].append(round(sum(times) / len(times), 2) if times else 0)
         completed = states.count('completed')
         abandoned = states.count('abandoned')
         level_states["labels"].append(level.name)
@@ -276,7 +280,7 @@ def get_performance_course(
             "data": story_abandoned
         })
         story_times["labels"].append(story.name)
-        story_times["data"].append(sum([data.time_watched for data in story_data]) / len(story_data) if story_data else 0)
+        story_times["data"].append(round(sum([data.time_watched for data in story_data]) / len(story_data), 2) if story_data else 0)
 
     # Lista de estudiantes y sus promedios
     students = db.query(Player).join(CoursePlayer).filter(CoursePlayer.course_id == course_id).all()
@@ -286,7 +290,7 @@ def get_performance_course(
             PlayerLevel.created_at.between(start_date, end_date),
             PlayerLevel.level_id.in_([level.id for level in levels])
         ).all()
-        average_score = sum([data.score for data in student_levels]) / len(student_levels) if student_levels else 0
+        average_score = round(sum([data.score for data in student_levels]) / len(student_levels), 2) if student_levels else 0
         student_list.append({
             "name": student.full_name,
             "id": student.id,
@@ -328,6 +332,7 @@ def get_performance_course(
         "story_times": story_times,
         "student_list": student_list,
     }
+
 
 @router.get("/get_performance_kid")
 def get_performance_kid(

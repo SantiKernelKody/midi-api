@@ -7,14 +7,13 @@ from sqlalchemy.orm import Session
 from db.session import SessionLocal, get_db
 from models.dashboard_user import DashboardUser
 from core.config import settings
+from schemas.token import TokenData
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 1 week
 
-class TokenData(BaseModel):
-    user_id: int
-    role_id: int
+
 
 def create_access_token(user_id: int, role_id: int) -> str:
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

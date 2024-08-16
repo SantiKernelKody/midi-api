@@ -6,13 +6,13 @@ class DashboardUserBase(BaseModel):
     name: str
     last_name: str
     email: EmailStr
-    role_id: int
+    #role_id: Optional[int]
 
 class DashboardUserCreate(DashboardUserBase):
     email: EmailStr
     name: str
     last_name: str
-    role_id: int
+    #role_id: Optional[int]
     
 
 class DashboardUserUpdate(DashboardUserBase):
@@ -20,7 +20,7 @@ class DashboardUserUpdate(DashboardUserBase):
 
 class DashboardUserInDBBase(DashboardUserBase):
     id: int
-    role_id: int
+    #role_id: Optional[int]
     created_at: datetime
 
     class Config:

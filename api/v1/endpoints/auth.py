@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 
 from schemas.dashboard_user import DashboardUserCreate, Token
 from schemas.token import TokenData
-from schemas.auth import LoginRequest
+from schemas.auth import LoginRequest, SignupRequest
 from models.dashboard_user import DashboardUser as DashboardUserModel
 from models.user_role import UserRole as UserRoleModel
 from core import security
@@ -35,27 +35,42 @@ def login_for_access_token(login_request: LoginRequest, db: Session = Depends(ge
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Ruta para signup de profesores y padres
 @router.post("/signup", response_model=Token)
-def signup(name: str, last_name: str, rawpassword: str, email: str, token: str, db: Session = Depends(get_db)):
+def signup(
+    signup_data: SignupRequest,
+    db: Session = Depends(get_db)
+):
     try:
-        payload = decode_access_token(token)
+        # Decodificar el token para obtener el user_id
+        payload = decode_access_token(signup_data.token)
+        print(f"Payload en signup: {payload}")
         user_id = payload.user_id
         if not user_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
         
+        # Buscar al usuario en la base de datos
         user = get_user(db, user_id=user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
         
-        updated_user = update_user_password(db, user=user, name=name, last_name=last_name, rawpassword=rawpassword, email=email)
+        # Actualizar la información del usuario con los datos proporcionados
+        updated_user = update_user_password(
+            db=db,
+            user=user,
+            name=signup_data.name,
+            last_name=signup_data.last_name,
+            rawpassword=signup_data.rawpassword,
+            email=signup_data.email
+        )
         
-        access_token_expires = timedelta(weeks=1)
+        # Generar un nuevo token de acceso con una expiración de una semana
         access_token = create_access_token(
             user_id=updated_user.id,
-            role_id=updated_user.role_id
+            role_id=updated_user.role_id,
         )
+        
+        # Retornar el nuevo token de acceso
         return {"access_token": access_token, "token_type": "bearer"}
     
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
