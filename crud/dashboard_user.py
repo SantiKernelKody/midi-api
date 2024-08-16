@@ -31,3 +31,11 @@ def update_user_password(db: Session, user: DashboardUser, name: str, last_name:
     db.commit()
     db.refresh(user)
     return user
+
+# construye funcion de update_user_password que solo reciba la contraseña y el id del usuario
+def update_only_user_password(db: Session, user_id: int, rawpassword: str):
+    user = db.query(DashboardUser).filter(DashboardUser.id == user_id).first()
+    user.password = get_password_hash(rawpassword)
+    db.commit()
+    db.refresh(user)
+    return user

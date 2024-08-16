@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from jose import JWTError
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 
 from schemas.dashboard_user import DashboardUserCreate, Token
+from schemas.reset_password import ResetPasswordData, ResetPasswordRequest
 from schemas.token import TokenData
 from schemas.auth import LoginRequest, SignupRequest
 from models.dashboard_user import DashboardUser as DashboardUserModel
@@ -11,8 +12,8 @@ from models.user_role import UserRole as UserRoleModel
 from core import security
 from core.config import settings
 from db.session import get_db
-from utils.email import send_email
-from crud.dashboard_user import get_user_by_email_and_role, create_user, get_user, update_user_password
+from utils.email import send_email, send_reset_password_email
+from crud.dashboard_user import get_user_by_email_and_role, create_user, get_user, update_user_password, update_only_user_password
 from utils.jwt_helper import create_access_token, decode_access_token, get_current_user
 
 router = APIRouter()
@@ -102,3 +103,74 @@ def signup(
     
     except JWTError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
+    
+@router.post("/request_reset_password")
+def request_reset_password(
+    reset_password_data: ResetPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    # Verificar si el email existe en la base de datos
+    user = db.query(DashboardUserModel).filter(DashboardUserModel.email == reset_password_data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Crear un token de acceso para el restablecimiento de contraseña
+    reset_token = create_access_token(user_id=user.id, role_id=user.role_id)
+
+    # Enviar correo de restablecimiento de contraseña
+    background_tasks.add_task(
+        send_reset_password_email,
+        user.email,  # El email del usuario
+        reset_token
+    )
+
+    return {"message": "Password reset email sent"}
+
+@router.get("/verify_reset_password_token")
+def verify_reset_password_token(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Decodificar el token para obtener el user_id
+        payload = decode_access_token(token)
+        user_id = payload.user_id
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+        
+        # Buscar al usuario en la base de datos
+        user = get_user(db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Retornar un mensaje de éxito si el token es válido
+        return {"message": "Token is valid", "user_name": user.name}
+    
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+
+@router.post("/reset_password")
+def reset_password(
+    reset_password_data: ResetPasswordData,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Decodificar el token para obtener el user_id
+        payload = decode_access_token(reset_password_data.token)
+        user_id = payload.user_id
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+        
+        # Buscar al usuario en la base de datos
+        user = get_user(db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Actualizar la contraseña del usuario
+        update_only_user_password(db=db, user_id=user.id, rawpassword=reset_password_data.new_password)
+
+        return {"message": "Password updated successfully"}
+    
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
