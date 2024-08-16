@@ -17,8 +17,6 @@ from models.course_player import CoursePlayer
 from schemas.player import Player as PlayerSchema, PlayerCreate, PlayerUpdate
 
 
-
-
 from crud.user_role import is_admin, is_teacher
 
 router = APIRouter()
@@ -177,8 +175,6 @@ def delete_teacher(
     
     return {"message": "Teacher deleted successfully"}
 
-
-router = APIRouter()
 
 @router.get("/get_courses", response_model=List[CourseSchema])
 def get_courses(

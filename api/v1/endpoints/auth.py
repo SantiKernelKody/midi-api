@@ -35,6 +35,34 @@ def login_for_access_token(login_request: LoginRequest, db: Session = Depends(ge
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@router.get("/verify_signup_token")
+def verify_signup_token(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Decodificar el token para obtener el user_id
+        payload = decode_access_token(token)
+        user_id = payload.user_id
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
+        
+        # Buscar al usuario en la base de datos
+        user = get_user(db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+        
+        # Retornar la información básica del usuario
+        return {
+            "name": user.name,
+            "last_name": user.last_name,
+            "email": user.email  # Suponiendo que user_name es el email
+        }
+    
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido")
+
+
 @router.post("/signup", response_model=Token)
 def signup(
     signup_data: SignupRequest,

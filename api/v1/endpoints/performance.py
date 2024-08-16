@@ -334,8 +334,32 @@ def get_performance_course(
     }
 
 
-@router.get("/get_performance_kid")
-def get_performance_kid(
+@router.get("/get_kid_data")
+def get_kid_data(
+    player_id: int = Query(...),
+    current_user: DashboardUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    # Validar que el jugador existe
+    player = db.query(Player).filter(Player.id == player_id).first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Obtener datos del jugador y su representante
+    caretaker = db.query(DashboardUser).join(CaretakerPlayer).filter(CaretakerPlayer.player_id == player_id).first()
+
+    player_data = {
+        "full_name": player.full_name,
+        "age": player.edad,
+        "ethnicity": player.ethnicity,
+        "email": player.user_name,  # Asumiendo que el correo es el nombre de usuario
+        "caretaker_name": caretaker.name if caretaker else "No asignado",
+        "caretaker_email": caretaker.email if caretaker else "No asignado"
+    }
+
+    return player_data
+@router.get("/get_kid_performance")
+def get_kid_performance(
     player_id: int = Query(...),
     game_id: int = Query(...),
     current_user: DashboardUser = Depends(get_current_user),
@@ -346,57 +370,72 @@ def get_performance_kid(
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
 
-    # Obtener la última sesión de PlayerLevel y PlayerStory
-    last_player_level = db.query(PlayerLevel).join(Level).join(Chapter).filter(
-        PlayerLevel.player_id == player_id,
-        Chapter.game_id == game_id
-    ).order_by(PlayerLevel.created_at.desc()).first()
-
-    last_player_story = db.query(PlayerStory).join(Story).join(Chapter).filter(
-        PlayerStory.player_id == player_id,
-        Chapter.game_id == game_id
-    ).order_by(PlayerStory.created_at.desc()).first()
-
     level_grades = {"labels": [], "data": []}
     level_times = {"labels": [], "data": []}
     level_states = {"labels": [], "data": []}
     story_states = {"labels": [], "data": []}
     story_times = {"labels": [], "data": []}
 
-    if last_player_level:
-        level = db.query(Level).filter(Level.id == last_player_level.level_id).first()
-        level_grades["labels"].append(level.name)
-        level_grades["data"].append(last_player_level.score)
-        level_times["labels"].append(level.name)
-        level_times["data"].append(last_player_level.total_time)
-        level_states["labels"].append(level.name)
-        level_states["data"].append({
-            "label": "Completados" if last_player_level.state == "completed" else "Abandonados",
-            "data": 1
-        })
+    # Obtener todos los niveles asociados al juego
+    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
 
-    if last_player_story:
-        story = db.query(Story).filter(Story.id == last_player_story.story_id).first()
-        story_states["labels"].append(story.name)
-        story_states["data"].append({
-            "label": "Completados" if last_player_story.state == "completed" else "Abandonados",
-            "data": 1
-        })
-        story_times["labels"].append(story.name)
-        story_times["data"].append(last_player_story.time_watched)
+    for level in levels:
+        # Obtener todos los registros del jugador en ese nivel
+        player_levels = db.query(PlayerLevel).filter(
+            PlayerLevel.player_id == player_id,
+            PlayerLevel.level_id == level.id
+        ).all()
 
-    # Obtener datos del jugador y su representante
-    caretaker = db.query(DashboardUser).join(CaretakerPlayer).filter(CaretakerPlayer.player_id == player_id).first()
+        if player_levels:
+            # Calcular el promedio de las puntuaciones y tiempos
+            avg_score = round(sum(data.score for data in player_levels) / len(player_levels), 2)
+            avg_time = round(sum(data.total_time for data in player_levels) / len(player_levels), 2)
+            completed = sum(1 for data in player_levels if data.state == "completed")
+            abandoned = sum(1 for data in player_levels if data.state == "abandoned")
 
-    player_data = {
-        "full_name": player.full_name,
-        "age": player.edad,
-        "ethnicity": player.ethnicity,
-        "email": player.user_name,  # Asumiendo que el correo es el nombre de usuario
-        "caretaker_name": caretaker.name if caretaker else None,
-        "caretaker_email": caretaker.email if caretaker else None
+            level_grades["labels"].append(level.name)
+            level_grades["data"].append(avg_score)
+            level_times["labels"].append(level.name)
+            level_times["data"].append(avg_time)
 
-    }
+            level_states["labels"].append(level.name)
+            level_states["data"].append({
+                "label": "Completados",
+                "data": completed
+            })
+            level_states["data"].append({
+                "label": "Abandonados",
+                "data": abandoned
+            })
+
+    # Obtener todas las historias asociadas al juego
+    stories = db.query(Story).join(Chapter).filter(Chapter.game_id == game_id).all()
+
+    for story in stories:
+        # Obtener todos los registros del jugador en esa historia
+        player_stories = db.query(PlayerStory).filter(
+            PlayerStory.player_id == player_id,
+            PlayerStory.story_id == story.id
+        ).all()
+
+        if player_stories:
+            # Calcular el promedio de los tiempos vistos
+            avg_time_watched = round(sum(data.time_watched for data in player_stories) / len(player_stories), 2)
+            completed = sum(1 for data in player_stories if data.state == "completed")
+            abandoned = sum(1 for data in player_stories if data.state == "abandoned")
+
+            story_states["labels"].append(story.name)
+            story_states["data"].append({
+                "label": "Completados",
+                "data": completed
+            })
+            story_states["data"].append({
+                "label": "Abandonados",
+                "data": abandoned
+            })
+
+            story_times["labels"].append(story.name)
+            story_times["data"].append(avg_time_watched)
 
     return {
         "level_grades": level_grades,
@@ -427,6 +466,7 @@ def get_performance_kid(
                 }
             ]
         },
-        "story_times": story_times,
-        "player_data": player_data
+        "story_times": story_times
     }
+
+

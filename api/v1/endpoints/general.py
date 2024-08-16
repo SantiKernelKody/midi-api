@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from models.game import Game as GameModel
@@ -16,8 +16,30 @@ from models.course import Course
 from models.course_player import CoursePlayer
 from models.caretaker_player import CaretakerPlayer
 from db.session import get_db
+from models.user_role import UserRole as UserRoleModel
 router = APIRouter()
 
+@router.get("/get_user_info")
+def get_user_info(
+    db: Session = Depends(get_db),
+    current_user: DashboardUser = Depends(get_current_user)
+):
+    # Buscar al usuario actual usando el current_user
+    user = db.query(DashboardUser).filter(DashboardUser.id == current_user.id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Buscar el rol del usuario
+    role = db.query(UserRoleModel).filter(UserRoleModel.id == user.role_id).first()
+
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+    return {
+        "name": f"{user.name} {user.last_name}",
+        "role_name": role.name
+    }
 
 @router.get("/games", response_model=List[GameSchema])
 def get_games(db: Session = Depends(get_db), current_user: DashboardUser = Depends(get_current_user)):
