@@ -7,5 +7,3 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: int
     role_id: int
-    created_at: str
-    expired_at: str
