@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
@@ -15,7 +16,7 @@ from models.player import Player as PlayerModel
 from models.course_player import CoursePlayer
 
 from schemas.player import Player as PlayerSchema, PlayerCreate, PlayerUpdate
-
+from models.education_reviewer import EducationReviewer as EducationReviewerModel
 
 from crud.user_role import is_admin, is_teacher
 
@@ -28,15 +29,41 @@ def get_schools(
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
 ):
-    if not (is_admin(current_user, db) or is_teacher(current_user, db)):
-        raise HTTPException(status_code=403, detail="Not authorized to access schools")
-
     offset = (page - 1) * size
-    schools = db.query(EducationalEntityModel).offset(offset).limit(size).all()
+    
+    if is_admin(current_user, db):
+        # Si es admin, devolver todas las escuelas
+        schools = db.query(EducationalEntityModel).offset(offset).limit(size).all()
+    elif is_teacher(current_user, db):
+        # Si es teacher, devolver solo las escuelas con las que está asociado
+        schools = db.query(EducationalEntityModel)\
+            .join(EducationReviewerModel, EducationReviewerModel.education_id == EducationalEntityModel.id)\
+            .filter(EducationReviewerModel.reviewer_id == current_user.id).offset(offset).limit(size).all()
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized to access schools")
 
     return schools
 
-@router.post("/create_school", response_model=EducationalEntitySchema)
+@router.get("/get_school/{school_id}", response_model=EducationalEntitySchema)
+def get_school(
+    school_id: int,
+    db: Session = Depends(get_db),
+    current_user: DashboardUserModel = Depends(get_current_user)
+):
+    # Verificar que el usuario sea admin o teacher
+    if not (is_admin(current_user, db) or is_teacher(current_user, db)):
+        raise HTTPException(status_code=403, detail="Not authorized to access school information")
+
+    # Buscar la escuela por ID
+    school = db.query(EducationalEntityModel).filter(EducationalEntityModel.id == school_id).first()
+
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+
+    return school
+
+
+@router.post("/create_school")
 def create_school(
     school_data: EducationalEntityCreate,
     db: Session = Depends(get_db),
@@ -45,7 +72,11 @@ def create_school(
     if not is_admin(current_user, db):
         raise HTTPException(status_code=403, detail="Not authorized to create schools")
     
-    new_school = EducationalEntityModel(**school_data.dict())
+    # Asigna la fecha de creación si no está configurada
+    new_school = EducationalEntityModel(
+        **school_data.dict(),
+        created_at=datetime.utcnow()  # Asegura que `created_at` no sea None
+    )
     db.add(new_school)
     db.commit()
     db.refresh(new_school)
@@ -95,8 +126,9 @@ def delete_school(
     return {"message": "School deleted successfully"}
 
 
-@router.get("/get_teacher", response_model=List[DashboardUserSchema])
-def get_teacher(
+@router.get("/get_teachers/{school_id}", response_model=List[DashboardUserSchema])
+def get_teachers(
+    school_id: int,  # No necesita `Path(...)`
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
     db: Session = Depends(get_db),
@@ -106,13 +138,18 @@ def get_teacher(
         raise HTTPException(status_code=403, detail="Not authorized to access teachers")
 
     offset = (page - 1) * size
-    teachers = db.query(DashboardUserModel).filter(DashboardUserModel.role_id == 2).offset(offset).limit(size).all()
+
+    # Filtrar profesores por la escuela especificada
+    teachers = db.query(DashboardUserModel).join(EducationReviewerModel, EducationReviewerModel.reviewer_id == DashboardUserModel.id)\
+        .filter(DashboardUserModel.role_id == 2, EducationReviewerModel.education_id == school_id)\
+        .offset(offset).limit(size).all()
 
     return teachers
 
 @router.post("/create_teacher", response_model=DashboardUserSchema)
 def create_teacher(
     teacher_data: DashboardUserCreate,
+    school_id: int,  # Agregar school_id como parámetro
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
@@ -142,6 +179,14 @@ def create_teacher(
     db.commit()
     db.refresh(new_teacher)
 
+    # Crear la asociación en la tabla education_reviewer
+    education_reviewer = EducationReviewerModel(
+        education_id=school_id,
+        reviewer_id=new_teacher.id
+    )
+    db.add(education_reviewer)
+    db.commit()
+
     # Crear token de acceso para el registro
     signup_token = create_access_token(user_id=new_teacher.id, role_id=new_teacher.role_id)
     
@@ -154,6 +199,8 @@ def create_teacher(
     )
     
     return new_teacher
+
+
 
 
 @router.delete("/delete_teacher/{teacher_id}")
@@ -175,9 +222,9 @@ def delete_teacher(
     
     return {"message": "Teacher deleted successfully"}
 
-
-@router.get("/get_courses", response_model=List[CourseSchema])
+@router.get("/get_courses/{school_id}", response_model=List[CourseSchema])
 def get_courses(
+    school_id: int,
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
     db: Session = Depends(get_db),
@@ -186,19 +233,40 @@ def get_courses(
     offset = (page - 1) * size
 
     if is_admin(current_user, db):
-        # Si es admin, devolver todos los cursos
-        courses = db.query(CourseModel).offset(offset).limit(size).all()
+        # Si es admin, devolver todos los cursos de la escuela especificada
+        courses = db.query(CourseModel).filter(CourseModel.school_id == school_id).offset(offset).limit(size).all()
     elif is_teacher(current_user, db):
-        # Si es teacher, devolver solo los cursos que creó
-        courses = db.query(CourseModel).filter(CourseModel.teacher_id == current_user.id).offset(offset).limit(size).all()
+        # Si es teacher, devolver solo los cursos que creó en la escuela especificada
+        courses = db.query(CourseModel).filter(
+            CourseModel.school_id == school_id,
+            CourseModel.reviewer_id == current_user.id
+        ).offset(offset).limit(size).all()
     else:
         raise HTTPException(status_code=403, detail="Not authorized to access courses")
 
     return courses
 
+@router.get("/get_course/{course_id}", response_model=CourseSchema)
+def get_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: DashboardUserModel = Depends(get_current_user)
+):
+    # Buscar el curso por ID
+    course = db.query(CourseModel).filter(CourseModel.id == course_id).first()
 
-@router.post("/create_course", response_model=CourseSchema)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Verificar permisos
+    if not (is_admin(current_user, db) or (is_teacher(current_user, db) and course.teacher_id == current_user.id)):
+        raise HTTPException(status_code=403, detail="Not authorized to access this course")
+
+    return course
+
+@router.post("/create_course/{school_id}", response_model=CourseSchema)
 def create_course(
+    school_id: int,
     course_data: CourseCreate,
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
@@ -206,21 +274,17 @@ def create_course(
     if not is_teacher(current_user, db):
         raise HTTPException(status_code=403, detail="Not authorized to create courses")
     
-    # Verificar que el school_id y el teacher_id existan
-    school = db.query(EducationalEntityModel).filter(EducationalEntityModel.id == course_data.school_id).first()
+    # Verificar que el school_id exista
+    school = db.query(EducationalEntityModel).filter(EducationalEntityModel.id == school_id).first()
     if not school:
         raise HTTPException(status_code=404, detail="School not found")
     
-    teacher = db.query(DashboardUserModel).filter(DashboardUserModel.id == course_data.teacher_id).first()
-    if not teacher:
-        raise HTTPException(status_code=404, detail="Teacher not found")
-
-    # Crear el curso
+    # Crear el curso asociado a la escuela y al teacher
     new_course = CourseModel(
-        name=course_data.name,
+        subject_name=course_data.subject_name,
         description=course_data.description,
-        school_id=course_data.school_id,
-        teacher_id=course_data.teacher_id
+        school_id=school_id,
+        reviewer_id=current_user.id  # Se asume que el reviewer_id es el ID del usuario actual (teacher)
     )
     db.add(new_course)
     db.commit()
@@ -255,9 +319,9 @@ def edit_course(
 
     return course
 
-@router.get("/get_kids", response_model=List[PlayerSchema])
+@router.get("/get_kids/{course_id}", response_model=List[PlayerSchema])
 def get_kids(
-    course_id: int = Query(...),
+    course_id: int,
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
     db: Session = Depends(get_db),
@@ -283,8 +347,9 @@ def get_kids(
 
     return kids
 
-@router.post("/create_kid", response_model=PlayerSchema)
+@router.post("/create_kid/{course_id}", response_model=PlayerSchema)
 def create_kid(
+    course_id: int,
     kid_data: PlayerCreate,
     parent_email: str,
     background_tasks: BackgroundTasks,
@@ -316,7 +381,7 @@ def create_kid(
         # Enviar correo de signup
         background_tasks.add_task(
             send_signup_email,
-            new_parent.user_name,
+            new_parent.email,
             "Padre de familia",
             signup_token
         )
@@ -334,7 +399,16 @@ def create_kid(
     db.commit()
     db.refresh(new_kid)
     
+    # Asociar el niño con el curso
+    course_player = CoursePlayer(
+        course_id=course_id,
+        player_id=new_kid.id
+    )
+    db.add(course_player)
+    db.commit()
+
     return new_kid
+
 
 @router.put("/edit_kid/{kid_id}")
 def edit_kid(
