@@ -133,8 +133,6 @@ def seed():
                 "ethnicity": "Ethnicity",
                 "special_need_description": None,
                 "special_need": 0,
-                "user_name": f"player{i}{j}",
-                "password": get_password_hash("password")
             }
             player = Player(**player_data)
             db.add(player)

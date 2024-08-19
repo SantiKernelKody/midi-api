@@ -9,6 +9,7 @@ from schemas.educational_entity import EducationalEntityBase
 from models import Stage, EducationalEntity, EducationReviewer, PlayerLevel, PlayerStory, Course, DashboardUser, Chapter, Player, Level, Story, CoursePlayer
 from db.session import get_db
 from utils.jwt_helper import get_current_user
+from schemas.educational_entity import EducationalEntity as EducationalEntitySchema
 
 router = APIRouter()
 
@@ -17,12 +18,12 @@ def get_stages(db: Session = Depends(get_db)):
     stages = db.query(Stage).all()
     return stages
 
-@router.get("/get_schools_admin", response_model=List[EducationalEntityBase])
+@router.get("/get_schools_admin", response_model=List[EducationalEntitySchema])
 def get_schools_admin(db: Session = Depends(get_db)):
     schools = db.query(EducationalEntity).all()
     return schools
 
-@router.get("/get_schools_teacher", response_model=List[EducationalEntityBase])
+@router.get("/get_schools_teacher", response_model=List[EducationalEntitySchema])
 def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
     schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.reviewer_id == current_user.id).all()
     return schools
@@ -352,7 +353,6 @@ def get_kid_data(
         "full_name": player.full_name,
         "age": player.edad,
         "ethnicity": player.ethnicity,
-        "email": player.user_name,  # Asumiendo que el correo es el nombre de usuario
         "caretaker_name": caretaker.name if caretaker else "No asignado",
         "caretaker_email": caretaker.email if caretaker else "No asignado"
     }

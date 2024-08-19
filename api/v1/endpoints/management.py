@@ -1,7 +1,10 @@
 from datetime import datetime
+from math import ceil
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import EmailStr
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Any, Dict, List, Optional
+from models.caretaker_player import CaretakerPlayer
 from models.educational_entity import EducationalEntity as EducationalEntityModel  # Renombrado para evitar confusión
 from schemas.educational_entity import EducationalEntityCreate, EducationalEntityUpdate, EducationalEntity as EducationalEntitySchema
 from db.session import get_db
@@ -10,15 +13,15 @@ from models.dashboard_user import DashboardUser as DashboardUserModel
 from schemas.dashboard_user import DashboardUserCreate, DashboardUser as DashboardUserSchema
 from utils.email import send_signup_email 
 from models.user_role import UserRole as UserRoleModel
-from schemas.course import CourseCreate, CourseUpdate, Course as CourseSchema 
+from schemas.course import CourseBase, CourseCreate, CourseUpdate, Course as CourseSchema 
 from models.course import Course as CourseModel
 from models.player import Player as PlayerModel
 from models.course_player import CoursePlayer
 
-from schemas.player import Player as PlayerSchema, PlayerCreate, PlayerUpdate
+from schemas.player import Player as PlayerSchema, PlayerCreate, PlayerDetailSchema, PlayerUpdate, PlayerWithCaretaker
 from models.education_reviewer import EducationReviewer as EducationReviewerModel
 
-from crud.user_role import is_admin, is_teacher
+from crud.user_role import get_parent_role_id, is_admin, is_teacher
 
 router = APIRouter()
 
@@ -259,7 +262,7 @@ def get_course(
         raise HTTPException(status_code=404, detail="Course not found")
 
     # Verificar permisos
-    if not (is_admin(current_user, db) or (is_teacher(current_user, db) and course.teacher_id == current_user.id)):
+    if not (is_admin(current_user, db) or (is_teacher(current_user, db) and course.reviewer_id == current_user.id)):
         raise HTTPException(status_code=403, detail="Not authorized to access this course")
 
     return course
@@ -267,7 +270,7 @@ def get_course(
 @router.post("/create_course/{school_id}", response_model=CourseSchema)
 def create_course(
     school_id: int,
-    course_data: CourseCreate,
+    course_data: CourseBase,
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
 ):
@@ -319,7 +322,7 @@ def edit_course(
 
     return course
 
-@router.get("/get_kids/{course_id}", response_model=List[PlayerSchema])
+@router.get("/get_kids/{course_id}", response_model=Dict[str, Any])
 def get_kids(
     course_id: int,
     page: int = Query(1, ge=1),
@@ -331,8 +334,20 @@ def get_kids(
         raise HTTPException(status_code=403, detail="Not authorized to access kids")
 
     offset = (page - 1) * size
-    
-    # Filtrar los niños asociados al curso dado
+
+    # Obtener el total de niños asociados al curso dado (sin paginación)
+    total_items = db.query(PlayerModel).join(CoursePlayer).filter(CoursePlayer.course_id == course_id).count()
+
+    if total_items == 0:
+        return {
+            "kids": [],
+            "total_items": 0,
+            "page": page,
+            "size": size,
+            "total_pages": 0
+        }
+
+    # Obtener los niños asociados al curso dado con paginación
     kids = (
         db.query(PlayerModel)
         .join(CoursePlayer, CoursePlayer.player_id == PlayerModel.id)
@@ -342,16 +357,58 @@ def get_kids(
         .all()
     )
 
-    if not kids:
-        raise HTTPException(status_code=404, detail="No kids found for the given course")
+    # Convertir la lista de objetos `PlayerModel` a una lista de esquemas `PlayerSchema`
+    kids_schemas = [PlayerSchema.from_orm(kid) for kid in kids]
 
-    return kids
+    total_pages = ceil(total_items / size)
+
+    return {
+        "kids": kids_schemas,
+        "total_items": total_items,
+        "page": page,
+        "size": size,
+        "total_pages": total_pages
+    }
+
+@router.get("/get_player_info/{player_id}", response_model=PlayerDetailSchema)
+def get_player_info(
+    player_id: int,
+    db: Session = Depends(get_db),
+    current_user: DashboardUserModel = Depends(get_current_user)
+):
+    # Verificar si el usuario tiene permiso para acceder a la información del niño
+    if not is_admin(current_user, db) and not is_teacher(current_user, db):
+        raise HTTPException(status_code=403, detail="Not authorized to access player information")
+
+    # Obtener la información del niño
+    player = db.query(PlayerModel).filter(PlayerModel.id == player_id).first()
+    
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    # Obtener la información del parent asociado usando la tabla caretaker_player
+    caretaker = (
+        db.query(DashboardUserModel)
+        .join(CaretakerPlayer, CaretakerPlayer.representative_id == DashboardUserModel.id)
+        .filter(CaretakerPlayer.player_id == player_id)
+        .first()
+    )
+    
+    player_detail = {
+        "full_name": player.full_name,
+        "edad": player.edad,
+        "ethnicity": player.ethnicity,
+        "caretaker_name": caretaker.name if caretaker else "No asignado",
+        "caretaker_email": caretaker.email if caretaker else "No asignado"
+    }
+
+    return player_detail
+
 
 @router.post("/create_kid/{course_id}", response_model=PlayerSchema)
 def create_kid(
     course_id: int,
-    kid_data: PlayerCreate,
-    parent_email: str,
+    kid_data: PlayerWithCaretaker,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
@@ -359,41 +416,42 @@ def create_kid(
     if not is_admin(current_user, db) and not is_teacher(current_user, db):
         raise HTTPException(status_code=403, detail="Not authorized to create kids")
     
-    # Verificar si el email del padre ya existe
-    existing_parent = db.query(DashboardUserModel).filter(DashboardUserModel.email == parent_email).first()
-    
-    if not existing_parent:
-        # Crear el padre en la base de datos sin contraseña
-        role_id = db.query(UserRoleModel).filter(UserRoleModel.name == "parent").first().id
-        new_parent = DashboardUserModel(
-            email=parent_email,
-            role_id=role_id,
-            name="[Pendiente]",  # Puedes solicitar o recibir el nombre real del padre
-            last_name=""  # Puedes solicitar o recibir el apellido real del padre
-        )
-        db.add(new_parent)
-        db.commit()
-        db.refresh(new_parent)
-
-        # Crear token de acceso para el registro
-        signup_token = create_access_token(user_id=new_parent.id, role_id=new_parent.role_id)
+    new_parent = None
+    if kid_data.caretaker_email:
+        # Verificar si el email del padre ya existe
+        existing_parent = db.query(DashboardUserModel).filter(DashboardUserModel.email == kid_data.caretaker_email).first()
         
-        # Enviar correo de signup
-        background_tasks.add_task(
-            send_signup_email,
-            new_parent.email,
-            "Padre de familia",
-            signup_token
-        )
-    else:
-        new_parent = existing_parent
+        if not existing_parent:
+            # Crear el padre en la base de datos sin contraseña
+            role_id = get_parent_role_id(db)
+            new_parent = DashboardUserModel(
+                email=kid_data.caretaker_email,
+                role_id=role_id,
+                name="[Pending]",  # Puedes solicitar o recibir el nombre real del padre
+                last_name=""  # Puedes solicitar o recibir el apellido real del padre
+            )
+            db.add(new_parent)
+            db.commit()
+            db.refresh(new_parent)
+
+            # Crear token de acceso para el registro
+            signup_token = create_access_token(user_id=new_parent.id, role_id=new_parent.role_id)
+            
+            # Enviar correo de signup
+            background_tasks.add_task(
+                send_signup_email,
+                new_parent.email,
+                "Padre de familia",
+                signup_token
+            )
+        else:
+            new_parent = existing_parent
     
-    # Crear el niño y asociarlo con el padre
+    # Crear el niño
     new_kid = PlayerModel(
         full_name=kid_data.full_name,
         edad=kid_data.edad,
         ethnicity=kid_data.ethnicity,
-        caretaker_id=new_parent.id  # Asociar con el padre creado o existente
     )
     db.add(new_kid)
     db.commit()
@@ -405,15 +463,27 @@ def create_kid(
         player_id=new_kid.id
     )
     db.add(course_player)
+
+    # Asociar el niño con el cuidador si se proporcionó un correo de cuidador
+    if new_parent:
+        caretaker_association = CaretakerPlayer(
+            representative_id=new_parent.id,
+            player_id=new_kid.id
+        )
+        db.add(caretaker_association)
+    
     db.commit()
 
     return new_kid
 
 
+
+
 @router.put("/edit_kid/{kid_id}")
 def edit_kid(
     kid_id: int,
-    kid_data: PlayerUpdate,
+    kid_data: PlayerWithCaretaker,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: DashboardUserModel = Depends(get_current_user)
 ):
@@ -424,13 +494,65 @@ def edit_kid(
     
     if not kid:
         raise HTTPException(status_code=404, detail="Kid not found")
-    
-    for key, value in kid_data.dict().items():
-        setattr(kid, key, value)
+
+    # Update kid's data
+    for key, value in kid_data.dict(exclude_unset=True).items():
+        if key != "caretaker_email":
+            setattr(kid, key, value)
+
+    # Handle caretaker email if provided
+    if kid_data.caretaker_email:
+        print("Si se recibio el email del cuidador")
+        # Validate email format
+        new_caretaker_email = kid_data.caretaker_email
+
+        # Check if the player already has a caretaker and remove the old association
+        old_caretaker = db.query(CaretakerPlayer).filter(CaretakerPlayer.player_id == kid_id).first()
+        if old_caretaker:
+            print("Si se encontro un cuidador antiguo")
+            db.delete(old_caretaker)
+            db.commit()
+
+        # Check if the new caretaker email exists
+        caretaker = db.query(DashboardUserModel).filter(
+            DashboardUserModel.email == new_caretaker_email, 
+            DashboardUserModel.role_id == get_parent_role_id(db)  # Assuming PARENT_ROLE_ID is defined elsewhere
+        ).first()
+
+        if not caretaker:
+            print("Si se encontro que el correo que se recibio ya tiene una cuenta creada ya")
+            # Create a new caretaker user
+            caretaker = DashboardUserModel(
+                email=new_caretaker_email,
+                role_id=get_parent_role_id(db),
+                name="[Pending]",  # You may request the real name from the parent
+                last_name=""  # You may request the real last name from the parent
+            )
+            db.add(caretaker)
+            db.commit()
+            db.refresh(caretaker)
+
+            # Send signup email
+            signup_token = create_access_token(user_id=caretaker.id, role_id=caretaker.role_id)
+            background_tasks.add_task(
+                send_signup_email,
+                caretaker.email,
+                "Parent",
+                signup_token
+            )
+
+        # Associate the new caretaker with the player
+        new_caretaker_association = CaretakerPlayer(
+            representative_id=caretaker.id,
+            player_id=kid_id
+        )
+        db.add(new_caretaker_association)
     
     db.commit()
     
     return {"message": "Kid updated successfully"}
+
+
 
 @router.delete("/delete_kid/{kid_id}")
 def delete_kid(

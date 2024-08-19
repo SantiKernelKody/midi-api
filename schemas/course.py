@@ -14,7 +14,7 @@ class CourseUpdate(CourseBase):
     reviewer_id: Optional[int] = None
 
 class CourseInDBBase(CourseBase):
-    id: int
+    #id: int
     school_id: int
     reviewer_id: int
 
@@ -22,6 +22,7 @@ class CourseInDBBase(CourseBase):
         orm_mode = True
 
 class Course(CourseInDBBase):
+    id: int
     pass
 
 class CourseInDB(CourseInDBBase):

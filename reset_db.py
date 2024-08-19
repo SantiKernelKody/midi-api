@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from db.session import SessionLocal
+from models.room import Room
 from models.user_role import UserRole
 from models.dashboard_user import DashboardUser
 from models.player import Player
@@ -19,7 +20,10 @@ from models.story import Story
 def reset_tables():
     db: Session = SessionLocal()
 
-    # Reiniciar las tablas eliminando todos los registros
+    # Eliminar los registros dependientes primero
+    db.query(Room).delete()
+
+    # Ahora eliminar las demás tablas
     db.query(PlayerStory).delete()
     db.query(PlayerLevel).delete()
     db.query(CoursePlayer).delete()

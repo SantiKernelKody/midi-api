@@ -13,8 +13,6 @@ class Player(Base):
     ethnicity = Column(String(32), nullable=True)
     special_need_description = Column(String(255), nullable=True)
     special_need = Column(Boolean, nullable=True)
-    user_name = Column(String(255), nullable=True)
-    password = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, nullable=True)
 
     player_levels = relationship("PlayerLevel", back_populates="player")
