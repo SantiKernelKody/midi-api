@@ -23,6 +23,9 @@ class CourseInDBBase(CourseBase):
 
 class Course(CourseInDBBase):
     id: int
+    class Config:
+        orm_mode = True
+        from_attributes = True
     pass
 
 class CourseInDB(CourseInDBBase):

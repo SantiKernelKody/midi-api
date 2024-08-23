@@ -129,9 +129,9 @@ def delete_school(
     return {"message": "School deleted successfully"}
 
 
-@router.get("/get_teachers/{school_id}", response_model=List[DashboardUserSchema])
+@router.get("/get_teachers/{school_id}", response_model=dict)
 def get_teachers(
-    school_id: int,  # No necesita `Path(...)`
+    school_id: int,
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
     db: Session = Depends(get_db),
@@ -142,12 +142,29 @@ def get_teachers(
 
     offset = (page - 1) * size
 
-    # Filtrar profesores por la escuela especificada
+    # Contar el número total de profesores en la escuela especificada
+    total_items = db.query(DashboardUserModel).join(EducationReviewerModel, EducationReviewerModel.reviewer_id == DashboardUserModel.id)\
+        .filter(DashboardUserModel.role_id == 2, EducationReviewerModel.education_id == school_id).count()
+
+    # Obtener los profesores con paginación
     teachers = db.query(DashboardUserModel).join(EducationReviewerModel, EducationReviewerModel.reviewer_id == DashboardUserModel.id)\
         .filter(DashboardUserModel.role_id == 2, EducationReviewerModel.education_id == school_id)\
         .offset(offset).limit(size).all()
 
-    return teachers
+    # Convertir los profesores a esquemas
+    teachers_schemas = [DashboardUserSchema.from_orm(teacher) for teacher in teachers]
+
+    # Calcular el total de páginas
+    total_pages = (total_items // size) + (1 if total_items % size != 0 else 0)
+
+    return {
+        "teachers": teachers_schemas,
+        "total_items": total_items,
+        "page": page,
+        "size": size,
+        "total_pages": total_pages
+    }
+
 
 @router.post("/create_teacher", response_model=DashboardUserSchema)
 def create_teacher(
@@ -225,7 +242,7 @@ def delete_teacher(
     
     return {"message": "Teacher deleted successfully"}
 
-@router.get("/get_courses/{school_id}", response_model=List[CourseSchema])
+@router.get("/get_courses/{school_id}", response_model=dict)
 def get_courses(
     school_id: int,
     page: int = Query(1, ge=1),
@@ -236,10 +253,17 @@ def get_courses(
     offset = (page - 1) * size
 
     if is_admin(current_user, db):
-        # Si es admin, devolver todos los cursos de la escuela especificada
+        # Si es admin, contar todos los cursos de la escuela especificada
+        total_items = db.query(CourseModel).filter(CourseModel.school_id == school_id).count()
+        # Obtener cursos con paginación
         courses = db.query(CourseModel).filter(CourseModel.school_id == school_id).offset(offset).limit(size).all()
     elif is_teacher(current_user, db):
-        # Si es teacher, devolver solo los cursos que creó en la escuela especificada
+        # Si es teacher, contar solo los cursos que creó en la escuela especificada
+        total_items = db.query(CourseModel).filter(
+            CourseModel.school_id == school_id,
+            CourseModel.reviewer_id == current_user.id
+        ).count()
+        # Obtener cursos con paginación
         courses = db.query(CourseModel).filter(
             CourseModel.school_id == school_id,
             CourseModel.reviewer_id == current_user.id
@@ -247,7 +271,20 @@ def get_courses(
     else:
         raise HTTPException(status_code=403, detail="Not authorized to access courses")
 
-    return courses
+    # Convertir los cursos a esquemas
+    courses_schemas = [CourseSchema.from_orm(course) for course in courses]
+
+    # Calcular el total de páginas
+    total_pages = (total_items // size) + (1 if total_items % size != 0 else 0)
+
+    return {
+        "courses": courses_schemas,
+        "total_items": total_items,
+        "page": page,
+        "size": size,
+        "total_pages": total_pages
+    }
+
 
 @router.get("/get_course/{course_id}", response_model=CourseSchema)
 def get_course(

@@ -38,13 +38,15 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
         school = db.query(EducationalEntity).filter(EducationalEntity.code == "ES000").first()
 
     # Convertir estado de español a inglés
-    estado = game_data.estado.lower()
-    if estado == "completado":
-        estado = "completed"
-    elif estado == "abandonado":
-        estado = "abandoned"
-    else:
-        raise HTTPException(status_code=400, detail="Invalid estado value.")
+    estado = None
+    if game_data.estado:
+        estado = game_data.estado.lower()
+        if estado == "completado":
+            estado = "completed"
+        elif estado == "abandonado":
+            estado = "abandoned"
+        else:
+            raise HTTPException(status_code=400, detail="Invalid estado value.")
 
     # Procesamiento de datos según el tipo
     if game_data.tipo == "jugador":

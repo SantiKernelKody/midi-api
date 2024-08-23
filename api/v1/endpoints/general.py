@@ -47,14 +47,6 @@ def get_games(db: Session = Depends(get_db), current_user: DashboardUser = Depen
     games = db.query(GameModel).all()
     return games
 
-@router.post("/send-signup-email")
-def send_signup_email_route():
-    try:
-        send_signup_email('tagoandres2000@hotmail.com', 'Padre de familia', 'prueba_hash')
-        return {"message": "Sign-up email sent"}
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        return {"message": "Failed to send sign-up email"}, 500
 
 @router.get("/general_headers_admin")
 def get_general_headers_admin(db: Session = Depends(get_db)):
@@ -78,15 +70,16 @@ def get_game_header_admin(game_id: int, db: Session = Depends(get_db), current_u
     chapter_ids = [chapter.id for chapter in chapters]
     levels = db.query(Level).filter(Level.chapter_id.in_(chapter_ids)).all()
     
-    # Contar los jugadores que han jugado estos niveles
+    # Contar los jugadores únicos que han jugado estos niveles
     level_ids = [level.id for level in levels]
-    total_players = db.query(PlayerLevel).filter(PlayerLevel.level_id.in_(level_ids)).count()
+    total_players = db.query(PlayerLevel.player_id).filter(PlayerLevel.level_id.in_(level_ids)).distinct().count()
     
     return {
         "total_players": total_players,
         "total_levels": len(levels),
         "total_chapters": len(chapters)
     }
+
 
 @router.get("/general_headers_teacher", response_model=dict)
 def get_general_headers_teacher(db: Session = Depends(get_db), current_user: DashboardUser = Depends(get_current_user)):
@@ -114,22 +107,23 @@ def get_game_header_teacher(game_id: int, db: Session = Depends(get_db), current
     player_ids = db.query(CoursePlayer.player_id).filter(CoursePlayer.course_id.in_(course_ids)).all()
     player_ids = [player_id[0] for player_id in player_ids]
 
-    # Contar el número de niños que han jugado el juego
-    total_players = db.query(PlayerLevel).join(Level).join(Chapter).filter(
+    # Contar el número de niños únicos que han jugado el juego
+    total_players = db.query(PlayerLevel.player_id).join(Level).join(Chapter).filter(
         PlayerLevel.player_id.in_(player_ids),
         Chapter.game_id == game_id
-    ).count()
+    ).distinct(PlayerLevel.player_id).count()
 
-    # Contar el número de cursos donde al menos un niño ha jugado el juego
-    total_courses = db.query(Course).join(CoursePlayer).join(PlayerLevel, PlayerLevel.player_id == CoursePlayer.player_id).join(Level).join(Chapter).filter(
+    # Contar el número de cursos únicos donde al menos un niño ha jugado el juego
+    total_courses = db.query(Course.id).join(CoursePlayer).join(PlayerLevel, PlayerLevel.player_id == CoursePlayer.player_id).join(Level).join(Chapter).filter(
         Course.reviewer_id == current_user.id,
         Chapter.game_id == game_id
-    ).distinct().count()
+    ).distinct(Course.id).count()
 
     return {
         "total_players": total_players,
         "total_courses": total_courses
     }
+
 
 
 @router.get("/kid_list")

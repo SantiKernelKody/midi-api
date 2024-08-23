@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from db.session import SessionLocal
 from models.room import Room
+from models.stage import Stage
 from models.user_role import UserRole
 from models.dashboard_user import DashboardUser
 from models.player import Player
@@ -22,6 +23,7 @@ def reset_tables():
 
     # Eliminar los registros dependientes primero
     db.query(Room).delete()
+    
 
     # Ahora eliminar las demás tablas
     db.query(PlayerStory).delete()
@@ -38,6 +40,7 @@ def reset_tables():
     db.query(Game).delete()
     db.query(DashboardUser).delete()
     db.query(UserRole).delete()
+    db.query(Stage).delete()
 
     # Reiniciar contadores de ID (opcional, solo para PostgreSQL)
     db.execute(text("ALTER SEQUENCE dashboard_user_id_seq RESTART WITH 1"))

@@ -40,7 +40,7 @@ def create_or_get_avatar(db: Session, name: str, description: str = "No definida
 def create_or_get_player(db: Session, full_name: str, school_id: int):
     player = db.query(Player).filter(Player.full_name == full_name, Player.school_id == school_id).first()
     if not player:
-        player = Player(full_name=full_name, school_id=school_id, user_name=full_name, password="default_password")
+        player = Player(full_name=full_name, school_id=school_id)
         db.add(player)
         db.commit()
         db.refresh(player)
