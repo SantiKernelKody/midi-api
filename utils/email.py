@@ -1,3 +1,4 @@
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -19,16 +20,19 @@ def send_email(to_email: str, subject: str, template_name: str, context: dict):
     # Adjuntar el contenido HTML
     message.attach(MIMEText(html_content, "html"))
 
-    
+    print("Email From:", settings.EMAILS_FROM_EMAIL)
+    print("Email To:", to_email)
+    print("Host:", settings.SMTP_HOST)
     # Conexión al servidor SMTP usando SSL
-    with smtplib.SMTP('smtp-mail.outlook.com', 587) as server:
+    with smtplib.SMTP(settings.SMTP_HOST, 587) as server:
         server.starttls()  # Inicia la conexión TLS
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.sendmail(settings.EMAILS_FROM_EMAIL, to_email, message.as_string())
-        print("Email sent successfully")
+        logging.info("Email sent successfully")
 
 def send_signup_email(to_email: str, role_name: str, signup_hash: str):
     subject = "Complete Your Registration"
+    logging.info(f"Sending signup email to {to_email}")
     signup_link = f"http://localhost:4200/signup/{signup_hash}"
     context = {
         "role_name": role_name,

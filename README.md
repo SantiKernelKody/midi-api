@@ -1,43 +1,37 @@
-# midi-api
-fastAPI project for the dashboard.
+# Proyecto API - Instrucciones para Levantar el Servidor
 
-├── app
-│   ├── api
-│   │   ├── v1
-│   │   │   ├── endpoints
-│   │   │   │   ├── auth.py
-│   │   │   │   ├── player.py
-│   │   │   │   ├── game.py
-│   │   │   │   ├── dashboard.py
-│   │   │   │   └── __init__.py
-│   │   │   └── __init__.py
-│   ├── core
-│   │   ├── config.py
-│   │   └── security.py
-│   ├── crud
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── player.py
-│   │   └── game.py
-│   ├── db
-│   │   ├── base.py
-│   │   ├── base_class.py
-│   │   ├── session.py
-│   ├── models
-│   │   ├── user.py
-│   │   ├── player.py
-│   │   ├── game.py
-│   │   └── __init__.py
-│   ├── schemas
-│   │   ├── user.py
-│   │   ├── player.py
-│   │   ├── game.py
-│   │   └── __init__.py
-│   ├── main.py
-│   └── __init__.py
-└── alembic
-    ├── versions
-    └── env.py
+Este proyecto es una API que utiliza FastAPI. A continuación se detallan los pasos necesarios para realizar las migraciones, ejecutar los seeders, y levantar el servidor.
 
+## Requisitos Previos
 
-security->session->base_class->models/user->schemas/->user->crud/user->core/security.py->endpoints/auth->main.py
+Asegúrate de tener instalados los siguientes requisitos en tu entorno:
+
+- Python 3.7 o superior
+- pip
+- Virtualenv (opcional, pero recomendado)
+
+## Instalación
+
+1. Clona el repositorio
+2. Crea y activa un entorno virtual (opcional pero recomendado):
+python -m venv env
+source env/bin/activate  # Para Linux/Mac
+env\Scripts\activate  # Para Windows
+3. Instala las dependencias del proyecto:
+pip install -r requirements.txt
+
+## Realizar la Migración
+
+Para aplicar las migraciones de la base de datos, ejecuta el siguiente comando:
+alembic upgrade head
+
+## Ejecutar los Seeders
+
+Para poblar la base de datos con datos iniciales (seeders), ejecuta el siguiente comando:
+python seeder.py
+
+## Levantar el Servidor
+
+Para iniciar el servidor de desarrollo, utiliza el siguiente comando:
+uvicorn main:app --reload
+El servidor se levantará en http://127.0.0.1:8000 por defecto.

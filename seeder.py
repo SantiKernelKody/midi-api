@@ -24,9 +24,9 @@ def seed():
 
     # Crear roles
     roles = [
-        {"name": "admin", "display_name": "Administrator", "description": "Admin role"},
-        {"name": "teacher", "display_name": "Teacher", "description": "Teacher role"},
-        {"name": "parent", "display_name": "Parent", "description": "Parent role"}
+        {"name": "admin", "display_name": "Administrador", "description": "Rol de administrador"},
+        {"name": "teacher", "display_name": "Profesor", "description": "Rol de profesor"},
+        {"name": "parent", "display_name": "Padre", "description": "Rol de padre"}
     ]
     for role_data in roles:
         role = UserRole(**role_data)
@@ -40,24 +40,24 @@ def seed():
     # Crear usuarios
     users = [
         {
-            "email": "admin@example.com",
-            "password": get_password_hash("adminpassword"),
-            "name": "Admin",
-            "last_name": "User",
+            "email": "admin@ejemplo.com",
+            "password": get_password_hash("contraseñaadmin"),
+            "name": "Administrador",
+            "last_name": "Usuario",
             "role_id": admin_role.id
         },
         {
-            "email": "teacher@example.com",
-            "password": get_password_hash("teacherpassword"),
-            "name": "Teacher",
-            "last_name": "User",
+            "email": "profesor@ejemplo.com",
+            "password": get_password_hash("contraseñaprofesor"),
+            "name": "Profesor",
+            "last_name": "Usuario",
             "role_id": teacher_role.id
         },
         {
-            "email": "parent@example.com",
-            "password": get_password_hash("parentpassword"),
-            "name": "Parent",
-            "last_name": "User",
+            "email": "padre@ejemplo.com",
+            "password": get_password_hash("contraseñapadre"),
+            "name": "Padre",
+            "last_name": "Usuario",
             "role_id": parent_role.id
         }
     ]
@@ -68,19 +68,19 @@ def seed():
 
     # Crear escuelas
     schools = [
-        {"name": "School One", "code": "SCH001", "description": "First school", "created_at": datetime.utcnow()},
-        {"name": "School Two", "code": "SCH002", "description": "Second school", "created_at": datetime.utcnow()}
+        {"name": "Escuela Uno", "code": "ESC001", "description": "Primera escuela", "created_at": datetime.utcnow()},
+        {"name": "Escuela Dos", "code": "ESC002", "description": "Segunda escuela", "created_at": datetime.utcnow()}
     ]
     for school_data in schools:
         school = EducationalEntity(**school_data)
         db.add(school)
     db.commit()
 
-    school1 = db.query(EducationalEntity).filter_by(code="SCH001").first()
-    school2 = db.query(EducationalEntity).filter_by(code="SCH002").first()
+    school1 = db.query(EducationalEntity).filter_by(code="ESC001").first()
+    school2 = db.query(EducationalEntity).filter_by(code="ESC002").first()
 
-    teacher = db.query(DashboardUser).filter_by(email="teacher@example.com").first()
-    parent = db.query(DashboardUser).filter_by(email="parent@example.com").first()
+    teacher = db.query(DashboardUser).filter_by(email="profesor@ejemplo.com").first()
+    parent = db.query(DashboardUser).filter_by(email="padre@ejemplo.com").first()
 
     # Asignar profesor a las escuelas
     education_reviewers = [
@@ -94,10 +94,10 @@ def seed():
 
     # Crear cursos
     courses = [
-        {"school_id": school1.id, "reviewer_id": teacher.id, "subject_name": "Math 101", "description": "Math course 101"},
-        {"school_id": school1.id, "reviewer_id": teacher.id, "subject_name": "Science 101", "description": "Science course 101"},
-        {"school_id": school2.id, "reviewer_id": teacher.id, "subject_name": "Math 102", "description": "Math course 102"},
-        {"school_id": school2.id, "reviewer_id": teacher.id, "subject_name": "Science 102", "description": "Science course 102"}
+        {"school_id": school1.id, "reviewer_id": teacher.id, "subject_name": "Matemáticas 101", "description": "Curso de matemáticas 101"},
+        {"school_id": school1.id, "reviewer_id": teacher.id, "subject_name": "Ciencias 101", "description": "Curso de ciencias 101"},
+        {"school_id": school2.id, "reviewer_id": teacher.id, "subject_name": "Matemáticas 102", "description": "Curso de matemáticas 102"},
+        {"school_id": school2.id, "reviewer_id": teacher.id, "subject_name": "Ciencias 102", "description": "Curso de ciencias 102"}
     ]
     for course_data in courses:
         course = Course(**course_data)
@@ -106,14 +106,14 @@ def seed():
 
     courses = db.query(Course).all()
 
-    # Crear stages
+    # Crear etapas
     stages = [
-        {"code": "R4", "name": "Stage R4", "description": "Description for stage R4"},
-        {"code": "R3", "name": "Stage R3", "description": "Description for stage R3"},
-        {"code": "R2", "name": "Stage R2", "description": "Description for stage R2"},
-        {"code": "R1", "name": "Stage R1", "description": "Description for stage R1"},
-        {"code": "R0", "name": "Stage R0", "description": "Description for stage R0"},
-        {"code": "Todos", "name": "Stage Todos", "description": "Description for stage Todos"}
+        {"code": "R4", "name": "Etapa R4", "description": "Descripción para la etapa R4"},
+        {"code": "R3", "name": "Etapa R3", "description": "Descripción para la etapa R3"},
+        {"code": "R2", "name": "Etapa R2", "description": "Descripción para la etapa R2"},
+        {"code": "R1", "name": "Etapa R1", "description": "Descripción para la etapa R1"},
+        {"code": "R0", "name": "Etapa R0", "description": "Descripción para la etapa R0"},
+        {"code": "Todos", "name": "Etapa Todos", "description": "Descripción para la etapa Todos"}
     ]
     for stage_data in stages:
         stage = Stage(**stage_data)
@@ -128,13 +128,11 @@ def seed():
             player_data = {
                 "school_id": course.school_id,
                 "special_need_id": None,
-                "full_name": f"Player {i}{j}",
+                "full_name": f"Jugador {i}{j}",
                 "edad": 10 + j % 2,
-                "ethnicity": "Ethnicity",
+                "ethnicity": "Etnia",
                 "special_need_description": None,
                 "special_need": 0,
-                "user_name": f"player{i}{j}",
-                "password": get_password_hash("password")
             }
             player = Player(**player_data)
             db.add(player)
@@ -144,7 +142,7 @@ def seed():
             db.add(course_player)
             db.commit()
 
-            # Asociar parent con player1 y player2
+            # Asociar padre con jugador1 y jugador2
             if j == 1 or j == 2:
                 caretaker_player = CaretakerPlayer(representative_id=parent.id, player_id=player.id)
                 db.add(caretaker_player)
@@ -152,8 +150,8 @@ def seed():
 
     # Crear juegos
     games = [
-        {"name": "Game One", "description": "First game", "logo_game": "logo1.png", "created_at": datetime.utcnow()},
-        {"name": "Game Two", "description": "Second game", "logo_game": "logo2.png", "created_at": datetime.utcnow()}
+        {"name": "Juego Uno", "description": "Primer juego", "logo_game": "logo1.png", "created_at": datetime.utcnow()},
+        {"name": "Juego Dos", "description": "Segundo juego", "logo_game": "logo2.png", "created_at": datetime.utcnow()}
     ]
     for game_data in games:
         game = Game(**game_data)
@@ -162,20 +160,20 @@ def seed():
 
     games = db.query(Game).all()
 
-    # Crear capítulos, niveles y historias para cada juego
+    # Crear capítulos, niveles e historias para cada juego
     for game in games:
         for i in range(1, 3):
-            chapter_data = {"game_id": game.id, "name": f"Chapter {i}", "description": f"Description of Chapter {i}", "created_at": datetime.utcnow()}
+            chapter_data = {"game_id": game.id, "name": f"Capítulo {i}", "description": f"Descripción del Capítulo {i}", "created_at": datetime.utcnow()}
             chapter = Chapter(**chapter_data)
             db.add(chapter)
             db.commit()
 
-            level_data = {"chapter_id": chapter.id, "name": f"Level {i}", "description": f"Description of Level {i}", "evaluation_criteria": "Criteria", "evaluation_method": "Method", "max_score": 100, "created_at": datetime.utcnow()}
+            level_data = {"chapter_id": chapter.id, "name": f"Nivel {i}", "description": f"Descripción del Nivel {i}", "evaluation_criteria": "Criterios", "evaluation_method": "Método", "max_score": 100, "created_at": datetime.utcnow()}
             level = Level(**level_data)
             db.add(level)
             db.commit()
 
-            story_data = {"chapter_id": chapter.id, "time": 10, "name": f"Story {i}", "description": f"Description of Story {i}", "created_at": datetime.utcnow()}
+            story_data = {"chapter_id": chapter.id, "time": 10, "name": f"Historia {i}", "description": f"Descripción de la Historia {i}", "created_at": datetime.utcnow()}
             story = Story(**story_data)
             db.add(story)
             db.commit()

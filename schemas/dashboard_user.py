@@ -27,6 +27,9 @@ class DashboardUserInDBBase(DashboardUserBase):
         orm_mode = True
 
 class DashboardUser(DashboardUserInDBBase):
+    class Config:
+        orm_mode = True
+        from_attributes = True
     pass
 
 class DashboardUserInDB(DashboardUserInDBBase):

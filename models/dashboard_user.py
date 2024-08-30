@@ -9,7 +9,7 @@ class DashboardUser(Base):
     role_id = Column(Integer, ForeignKey("user_role.id"))
     name = Column(String(128))
     last_name = Column(String(128))
-    email = Column(String(128), unique=True, index=True)
+    email = Column(String(128), unique=False, index=True)
     password = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     
