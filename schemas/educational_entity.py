@@ -17,11 +17,13 @@ class EducationalEntityInDBBase(EducationalEntityBase):
     id: int
     #created_at: datetime
 
-    class Config:
-        orm_mode = True
+    
 
 class EducationalEntity(EducationalEntityInDBBase):
     id: int
+    class Config:
+        orm_mode = True
+        from_attributes = True
     pass
 
 class EducationalEntityInDB(EducationalEntityInDBBase):

@@ -25,7 +25,7 @@ from crud.user_role import get_parent_role_id, is_admin, is_teacher
 
 router = APIRouter()
 
-@router.get("/get_schools", response_model=List[EducationalEntitySchema])
+@router.get("/get_schools", response_model=Dict[str, Any])
 def get_schools(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
@@ -33,19 +33,34 @@ def get_schools(
     current_user: DashboardUserModel = Depends(get_current_user)
 ):
     offset = (page - 1) * size
-    
+
     if is_admin(current_user, db):
         # Si es admin, devolver todas las escuelas
+        total_items = db.query(EducationalEntityModel).count()
         schools = db.query(EducationalEntityModel).offset(offset).limit(size).all()
     elif is_teacher(current_user, db):
         # Si es teacher, devolver solo las escuelas con las que está asociado
+        total_items = db.query(EducationalEntityModel)\
+            .join(EducationReviewerModel, EducationReviewerModel.education_id == EducationalEntityModel.id)\
+            .filter(EducationReviewerModel.reviewer_id == current_user.id).count()
+
         schools = db.query(EducationalEntityModel)\
             .join(EducationReviewerModel, EducationReviewerModel.education_id == EducationalEntityModel.id)\
             .filter(EducationReviewerModel.reviewer_id == current_user.id).offset(offset).limit(size).all()
     else:
         raise HTTPException(status_code=403, detail="Not authorized to access schools")
 
-    return schools
+    total_pages = (total_items + size - 1) // size
+
+    school_schemas = [EducationalEntitySchema.from_orm(school) for school in schools]
+
+    return {
+        "schools": school_schemas,
+        "total_items": total_items,
+        "page": page,
+        "size": size,
+        "total_pages": total_pages
+    }
 
 @router.get("/get_school/{school_id}", response_model=EducationalEntitySchema)
 def get_school(

@@ -1,3 +1,4 @@
+from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db.session import get_db
@@ -8,6 +9,24 @@ from utils.auth import get_password_hash, verify_password
 
 
 router = APIRouter()
+
+@router.get("/get_user_info", response_model=Dict[str, str])
+def get_user_info(
+    db: Session = Depends(get_db),
+    current_user: DashboardUser = Depends(get_current_user)
+):
+    # Buscar al usuario en la base de datos
+    user = db.query(DashboardUser).filter(DashboardUser.id == current_user.id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Devolver la información del usuario
+    return {
+        "name": user.name,
+        "last_name": user.last_name,
+        "email": user.email  # Asumimos que user_name es el email
+    }
 
 @router.put("/update_user")
 def update_user(
