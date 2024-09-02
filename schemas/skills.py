@@ -17,6 +17,9 @@ class SkillsInDBBase(SkillsBase):
         orm_mode = True
 
 class Skills(SkillsInDBBase):
+    class Config:
+        orm_mode = True
+        from_attributes = True
     pass
 
 class SkillsInDB(SkillsInDBBase):

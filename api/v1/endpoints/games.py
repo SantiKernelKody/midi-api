@@ -100,3 +100,5 @@ async def receive_game_data(request: Request, game_data: GameDataCreate, db: Ses
         return {"detail": "Story data saved successfully"}
     
     return {"detail": "Invalid data type"}
+
+

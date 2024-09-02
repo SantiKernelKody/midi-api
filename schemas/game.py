@@ -19,4 +19,6 @@ class GameInDBBase(GameBase):
         orm_mode = True
 
 class Game(GameInDBBase):
-    pass
+    class Config:
+        orm_mode = True
+        from_attributes = True

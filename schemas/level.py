@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from typing import List
 
 class LevelBase(BaseModel):
     name: str
@@ -24,7 +25,33 @@ class LevelInDBBase(LevelBase):
         orm_mode = True
 
 class Level(LevelInDBBase):
-    pass
+    class Config:
+        orm_mode = True
+        from_attributes = True
 
 class LevelInDB(LevelInDBBase):
     pass
+
+
+
+
+class LevelUpdate(BaseModel):
+    name: str
+    description: Optional[str]
+    evaluation_criteria: Optional[str]
+    max_score: int
+    skill_ids: List[int]
+
+    class Config:
+        orm_mode = True
+        
+class LevelWithSkillsSchema(BaseModel):
+    id: int
+    name: str
+    description: str
+    evaluation_criteria: str
+    max_score: int
+    skill_ids: List[int]
+
+    class Config:
+        orm_mode = True
