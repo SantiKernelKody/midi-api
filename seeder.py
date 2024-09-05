@@ -1,3 +1,5 @@
+import random
+from datetime import datetime
 from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from models.user_role import UserRole
@@ -16,8 +18,10 @@ from models.level import Level
 from models.story import Story
 from models.stage import Stage
 from core.security import get_password_hash
-from datetime import datetime
-import random
+
+# Listas de nombres y apellidos reales
+nombres = ["Juan", "Ana", "Luis", "Sofía", "Carlos", "María", "Pedro", "Laura", "Jorge", "Lucía"]
+apellidos = ["Pérez", "Gómez", "Rodríguez", "López", "Martínez", "García", "Hernández", "Díaz", "Sánchez", "Fernández"]
 
 def seed():
     db: Session = SessionLocal()
@@ -122,13 +126,16 @@ def seed():
 
     stages = db.query(Stage).filter(Stage.code != 'Todos').all()
 
-    # Crear jugadores y asignarlos a los cursos
+    # Crear jugadores con nombres reales y asignarlos a los cursos
     for i, course in enumerate(courses, start=1):
         for j in range(1, 11):
+            # Seleccionar un nombre y apellido al azar
+            nombre = random.choice(nombres)
+            apellido = random.choice(apellidos)
             player_data = {
                 "school_id": course.school_id,
                 "special_need_id": None,
-                "full_name": f"Jugador {i}{j}",
+                "full_name": f"{nombre} {apellido}",
                 "edad": 10 + j % 2,
                 "ethnicity": "Etnia",
                 "special_need_description": None,
@@ -142,7 +149,7 @@ def seed():
             db.add(course_player)
             db.commit()
 
-            # Asociar padre con jugador1 y jugador2
+            # Asociar padre con los primeros dos jugadores
             if j == 1 or j == 2:
                 caretaker_player = CaretakerPlayer(representative_id=parent.id, player_id=player.id)
                 db.add(caretaker_player)

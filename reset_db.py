@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from db.session import SessionLocal
+from models.level_skills import LevelSkills
 from models.room import Room
 from models.stage import Stage
 from models.user_role import UserRole
@@ -35,6 +36,7 @@ def reset_tables():
     db.query(Course).delete()
     db.query(EducationalEntity).delete()
     db.query(Story).delete()
+    db.query(LevelSkills).delete()
     db.query(Level).delete()
     db.query(Chapter).delete()
     db.query(Game).delete()

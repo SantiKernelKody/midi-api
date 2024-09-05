@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import asc
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import date
 
+from crud.user_role import is_admin, is_teacher
 from models.caretaker_player import CaretakerPlayer
 from schemas.stage import StageBase
 from schemas.educational_entity import EducationalEntityBase
@@ -11,6 +13,7 @@ from db.session import get_db
 from utils.jwt_helper import get_current_user
 from schemas.educational_entity import EducationalEntity as EducationalEntitySchema
 
+COLORS = ["#FFCE56", "#82BEFF", "#EE6B4D", "#3D5B81"]
 router = APIRouter()
 
 @router.get("/get_stages", response_model=List[StageBase])
@@ -18,15 +21,24 @@ def get_stages(db: Session = Depends(get_db)):
     stages = db.query(Stage).all()
     return stages
 
-@router.get("/get_schools_admin", response_model=List[EducationalEntitySchema])
-def get_schools_admin(db: Session = Depends(get_db)):
-    schools = db.query(EducationalEntity).all()
+@router.get("/get_schools", response_model=List[EducationalEntitySchema])
+def get_schools(
+    current_user: DashboardUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if is_admin(current_user, db):
+        # Si es admin, devolver todas las escuelas
+        schools = db.query(EducationalEntity).all()
+    elif is_teacher(current_user, db):
+        # Si es teacher, devolver solo las escuelas con las que está asociado
+        schools = db.query(EducationalEntity)\
+            .join(EducationReviewer, EducationReviewer.education_id == EducationalEntity.id)\
+            .filter(EducationReviewer.reviewer_id == current_user.id).all()
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized to access schools")
+
     return schools
 
-@router.get("/get_schools_teacher", response_model=List[EducationalEntitySchema])
-def get_schools_teacher(current_user: DashboardUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    schools = db.query(EducationalEntity).join(EducationReviewer).filter(EducationReviewer.reviewer_id == current_user.id).all()
-    return schools
 @router.get("/get_courses")
 def get_courses(
     school_id: int = Query(...),
@@ -60,7 +72,11 @@ def get_performance_school(
     current_user: DashboardUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
+    levels = db.query(Level)\
+        .join(Chapter)\
+        .filter(Chapter.game_id == game_id)\
+        .order_by(asc(Level.id))\
+        .all()
     level_grades = {"labels": [], "data": []}
     level_times = {"labels": [], "data": []}
     level_states = {"labels": [], "data": []}
@@ -167,11 +183,13 @@ def get_performance_school(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -180,11 +198,13 @@ def get_performance_school(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         },
@@ -212,7 +232,11 @@ def get_performance_course(
         raise HTTPException(status_code=403, detail="Not authorized to access this course")
 
     # Obtener niveles asociados al juego
-    levels = db.query(Level).join(Chapter).filter(Chapter.game_id == game_id).all()
+    levels = db.query(Level)\
+        .join(Chapter)\
+        .filter(Chapter.game_id == game_id)\
+        .order_by(asc(Level.id))\
+        .all()
     level_grades = {"labels": [], "data": []}
     level_times = {"labels": [], "data": []}
     level_states = {"labels": [], "data": []}
@@ -309,11 +333,13 @@ def get_performance_course(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -322,11 +348,13 @@ def get_performance_course(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         },
@@ -445,11 +473,13 @@ def get_kid_performance(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -458,11 +488,13 @@ def get_kid_performance(
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         },

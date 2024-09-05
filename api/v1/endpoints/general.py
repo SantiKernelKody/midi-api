@@ -18,7 +18,7 @@ from models.caretaker_player import CaretakerPlayer
 from db.session import get_db
 from models.user_role import UserRole as UserRoleModel
 router = APIRouter()
-
+COLORS = ["#FFCE56", "#82BEFF", "#EE6B4D", "#3D5B81"]
 @router.get("/get_user_info")
 def get_user_info(
     db: Session = Depends(get_db),
@@ -188,11 +188,13 @@ def get_general_body_admin(game_id: int, db: Session = Depends(get_db)):
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -201,11 +203,13 @@ def get_general_body_admin(game_id: int, db: Session = Depends(get_db)):
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         }
@@ -274,11 +278,13 @@ def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -287,11 +293,13 @@ def get_general_body_teacher(game_id: int, current_user: DashboardUser = Depends
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         }
@@ -360,11 +368,13 @@ def get_general_body_parent(game_id: int, player_id: int, current_user: Dashboar
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[0]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in level_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[1]
                 }
             ]
         },
@@ -373,11 +383,13 @@ def get_general_body_parent(game_id: int, player_id: int, current_user: Dashboar
             "data": [
                 {
                     "label": "Completados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Completados"],
+                    "backgroundColor": COLORS[2]
                 },
                 {
                     "label": "Abandonados",
-                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"]
+                    "data": [state["data"] for state in story_states["data"] if state["label"] == "Abandonados"],
+                    "backgroundColor": COLORS[3]
                 }
             ]
         }

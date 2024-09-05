@@ -6,7 +6,7 @@ Este proyecto es una API que utiliza FastAPI. A continuación se detallan los pa
 
 Asegúrate de tener instalados los siguientes requisitos en tu entorno:
 
-- Python 3.7 o superior
+- Python 3.11.5
 - pip
 - Virtualenv (opcional, pero recomendado)
 
